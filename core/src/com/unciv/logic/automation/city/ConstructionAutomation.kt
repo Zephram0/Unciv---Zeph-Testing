@@ -172,8 +172,27 @@ class ConstructionAutomation(val cityConstructions: CityConstructions) {
         if (civInfo.gold < -50) return
 
         val militaryUnit = Automation.chooseMilitaryUnit(city, units) ?: return
-        val unitsToCitiesRatio = cities.toFloat() / (militaryUnits + 1)
+        
+        // Calculate the military focus target percentage
+        val militaryUnit = Automation.chooseMilitaryUnit(city, units) ?: return
+        val currentSupply = civInfo.units.getCivUnitsSize().toFloat()
+        val maxSupply = civInfo.stats.getUnitSupply().toFloat()
+        
+        // Calculate the current supply percentage
+        val currentSupplyPercentage = currentSupply / maxSupply
+
+        // Apply the priority multiplier based on the current supply percentage and target supply percentage
+        var priorityMultiplier = 1.0f
+        if (currentSupplyPercentage < targetSupplyPercentage) {
+            // Linearly scale the multiplier from 2 at 0% supply to 1.5 at the target supply
+            priorityMultiplier = 2f - 0.5f * (currentSupplyPercentage / targetSupplyPercentage)
+        } else {
+            // No additional focus when over the target supply
+            priorityMultiplier = 1f
+        }
+        
         // most buildings and civ units contribute the the civ's growth, military units are anti-growth
+        val unitsToCitiesRatio = cities.toFloat() / (militaryUnits + 1)
         var modifier = 1 + sqrt(unitsToCitiesRatio) / 2
         if (civInfo.wantsToFocusOn(Victory.Focus.Military) || isAtWar) modifier *= 2
 
