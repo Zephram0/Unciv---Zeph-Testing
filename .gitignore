@@ -31,6 +31,8 @@ www-test/
 *.ipr
 *.iws
 *.iml
+*.apk
+*.aab
 /android/out/
 com_crashlytics_export_strings.xml
 
@@ -112,6 +114,8 @@ nb-configuration.xml
 /local.properties
 .gradle/
 gradle-app.setting
+.idea/
+
 
 ## OS Specific
 .DS_Store
