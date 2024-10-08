@@ -52,14 +52,21 @@ android {
             keyPassword = "android"
             storePassword = "android"
         }
+        create("release") {
+            storeFile = rootProject.file("my-release-key.jks")  // Path to your release keystore file
+            keyAlias = "Unciv Zeph"  // Replace with your alias name used during keystore generation
+            keyPassword = "1234qwer"  // Replace with the key password you used
+            storePassword = "1234qwer"  // Replace with the store password you used
+        }
     }
+
 
     buildTypes {
         debug {
             isDebuggable = true
         }
         release {
-            // If you make this true you get a version of the game that just flat-out doesn't run
+            signingConfig = signingConfigs.getByName("release")  // Add this line
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
             isDebuggable = false
