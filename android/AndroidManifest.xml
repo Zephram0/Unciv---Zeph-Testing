@@ -30,7 +30,7 @@
         android:banner="@drawable/banner"
         android:theme="@style/GdxTheme" >
         <activity
-            android:name="com.unciv.app.AndroidLauncher"
+            android:name="com.zephram0.uncivmod"
             android:launchMode="singleTask"
             android:exported="true"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
@@ -46,7 +46,7 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data
                     android:scheme="https"
-                    android:host="unciv.app"
+                    android:host="zephmod.app"
                     android:path="/multiplayer"
                 />
             </intent-filter>
