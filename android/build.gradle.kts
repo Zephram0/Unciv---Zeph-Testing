@@ -1,7 +1,7 @@
 
 import com.unciv.build.AndroidImagePacker
 import com.unciv.build.BuildConfig
-import java.util.Properties
+import org.gradle.api.JavaVersion
 
 plugins {
     id("com.android.application")
