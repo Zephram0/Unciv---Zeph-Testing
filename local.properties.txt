@@ -1,1 +1,2 @@
 sdk.dir=/usr/lib/android-sdk
+cmdline.tools.dir=/usr/lib/android-sdk/cmdline-tools/latest
