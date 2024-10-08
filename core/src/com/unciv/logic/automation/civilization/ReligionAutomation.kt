@@ -33,6 +33,8 @@ object ReligionAutomation {
         
         if (civInfo.religionManager.remainingFoundableReligions() == 0 ) {
             buyGreatPerson(civInfo)
+            //appears not to occur in some cases when able to buy great person?
+            //find out why.
             tryBuyAnyReligiousBuilding(civInfo)
             return
         }
@@ -41,11 +43,14 @@ object ReligionAutomation {
         //TODO: in late game, this may not be worth it
         val citiesWithoutOurReligion = civInfo.cities.filter { it.religion.getMajorityReligion() != civInfo.religionManager.religion!! }
         // The original had a cap at 4 missionaries total, but 1/4 * the number of cities should be more appropriate imo
+        // Should depend on risk to spread religion to nearby civs
+        // Relationship/ArmySize/Avoid pissing off just one more civ resulting in ganging up
         if (citiesWithoutOurReligion.count() >
             4 * civInfo.units.getCivUnits().count {
                     it.hasUnique(UniqueType.CanSpreadReligion)
                     || it.hasUnique(UniqueType.CanRemoveHeresy) }
         ) {
+            //makes sense, love this
             val (city, pressureDifference) = citiesWithoutOurReligion.map { city ->
                 city to city.religion.getPressureDeficit(civInfo.religionManager.religion?.name)
             }.maxByOrNull { it.second }!!
@@ -56,6 +61,7 @@ object ReligionAutomation {
         }
 
         // Get an inquisitor to defend our holy city
+        // Consider more if defensive religion with strong benefits 
         val holyCity = civInfo.religionManager.getHolyCity()
         if (holyCity != null
             && holyCity in civInfo.cities
@@ -67,6 +73,8 @@ object ReligionAutomation {
         }
         
         // Just buy missionaries to spread our religion outside of our civ
+        // If valuable, some follower/Pantheon beliefs are worth keeping internal
+        // Don't risk war, unless that's the goal
         if (civInfo.units.getCivUnits().count { it.hasUnique(UniqueType.CanSpreadReligion) } < 4) {
             buyMissionaryInAnyCity(civInfo)
             return
