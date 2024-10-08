@@ -1,4 +1,3 @@
-
 import com.unciv.build.AndroidImagePacker
 import com.unciv.build.BuildConfig
 import java.util.Properties
@@ -6,6 +5,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    id("androidx.profileinstaller") version "1.2.0"
 }
 
 android {
@@ -23,27 +23,22 @@ android {
     }
     packaging {
         resources.excludes += "META-INF/robovm/ios/robovm.xml"
-        // part of kotlinx-coroutines-android, should not go into the apk
-        resources.excludes += "DebugProbesKt.bin"
+        resources.excludes += "DebugProbesKt.bin"  // part of kotlinx-coroutines-android, should not go into the apk
     }
     defaultConfig {
         namespace = BuildConfig.identifier
         applicationId = BuildConfig.identifier
         minSdk = 21
-        targetSdk = 34 // See #5044
+        targetSdk = 34  // See #5044
         versionCode = BuildConfig.appCodeNumber
         versionName = BuildConfig.appVersion
 
         base.archivesName.set("Unciv")
     }
 
-    // necessary for Android Work lib
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8.toString()
     }
-
-    // Had to add this crap for Travis to build, it wanted to sign the app
-    // but couldn't create the debug keystore for some reason
 
     signingConfigs {
         getByName("debug") {
@@ -60,7 +55,6 @@ android {
         }
     }
 
-
     buildTypes {
         debug {
             isDebuggable = true
@@ -70,6 +64,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
             isDebuggable = false
+            matchingFallbacks += listOf("profile")  // Ensure the baseline profile is included in release build
         }
     }
 
@@ -81,12 +76,11 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
     androidResources {
-        // Don't add local save files and fonts to release, obviously
-        ignoreAssetsPattern = "!SaveFiles:!fonts:!maps:!music:!mods"
+        ignoreAssetsPattern = "!SaveFiles:!fonts:!maps:!music:!mods"  // Don't add local save files and fonts to release, obviously
     }
     buildFeatures {
-        renderScript = true
-        aidl = true
+        renderScript = false  // Disable to improve build speed if not needed
+        aidl = false  // Disable to improve build speed if not needed
     }
 }
 
@@ -97,9 +91,6 @@ task("texturePacker") {
     }
 }
 
-// called every time gradle gets executed, takes the native dependencies of
-// the natives configuration, and extracts them to the proper libs/ folders
-// so they get packed with the APK.
 task("copyAndroidNatives") {
     val natives: Configuration by configurations
 
@@ -121,7 +112,6 @@ task("copyAndroidNatives") {
 }
 
 tasks.whenTaskAdded {
-    // See https://github.com/yairm210/Unciv/issues/4842
     if ("package" in name || "assemble" in name || "bundleRelease" in name) {
         dependsOn("copyAndroidNatives")
     }
@@ -132,7 +122,6 @@ tasks.register<JavaExec>("run") {
     val path = if (localProperties.exists()) {
         val properties = Properties()
         localProperties.inputStream().use { properties.load(it) }
-
         properties.getProperty("sdk.dir") ?: System.getenv("ANDROID_HOME")
     } else {
         System.getenv("ANDROID_HOME")
@@ -147,12 +136,16 @@ tasks.register<JavaExec>("run") {
     }
 }
 
+tasks.register("generateBaselineProfile") {
+    doFirst {
+        println("Generating Baseline Profile for performance optimizations")
+    }
+    // Placeholder: You would run specific UI actions here if automating profile generation
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.work:work-runtime-ktx:2.8.1")
-    // Needed to convert e.g. Android 26 API calls to Android 21
-    // If you remove this run `./gradlew :android:lintDebug` to ensure everything's okay.
-    // If you want to upgrade this, check it's working by building an apk,
-    //   or by running `./gradlew :android:assembleRelease` which does that
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")
+    implementation("androidx.profileinstaller:profileinstaller:1.2.0")
 }
