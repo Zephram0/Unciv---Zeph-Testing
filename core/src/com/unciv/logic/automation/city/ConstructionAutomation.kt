@@ -164,55 +164,6 @@ class ConstructionAutomation(val cityConstructions: CityConstructions) {
     }
 
     private fun addMilitaryUnitChoice() {
-    if (!cityIsOverAverageProduction) return // don't make any military units here. Infrastructure first!
-    if (civInfo.stats.getUnitSupplyDeficit() > 0) return // we don't want more units if it's already hurting our empire
-    if (!isAtWar && (civInfo.stats.statsForNextTurn.gold < 0 || militaryUnits > max(7, cities * 5))) return
-    if (civInfo.gold < -50) return
-
-    // Only declare militaryUnit once
-    val militaryUnit = Automation.chooseMilitaryUnit(city, units) ?: return
-    
-    // Calculate the military focus target percentage
-    val currentSupply = civInfo.units.getCivUnitsSize().toFloat()
-    val maxSupply = civInfo.stats.getUnitSupply().toFloat()
-
-    // Calculate the military focus target percentage
-    val militaryFocus = personality[PersonalityValue.Military] / 10f
-    val targetSupplyPercentage = 0.2f + 0.7f * militaryFocus // Linearly scales from 20% to 90%
-
-    // Calculate the current supply percentage
-    val currentSupplyPercentage = currentSupply / maxSupply
-
-    // Apply the priority multiplier based on the current supply percentage and target supply percentage
-    var priorityMultiplier = 1.0f
-    if (currentSupplyPercentage < targetSupplyPercentage) {
-        // Linearly scale the multiplier from 2 at 0% supply to 1.5 at the target supply
-        priorityMultiplier = 2f - 0.5f * (currentSupplyPercentage / targetSupplyPercentage)
-    } else {
-        // No additional focus when over the target supply
-        priorityMultiplier = 1f
-    }
-    
-    // Most buildings and civ units contribute to the civ's growth, military units are anti-growth
-    val unitsToCitiesRatio = cities.toFloat() / (militaryUnits + 1)
-    var modifier = 1 + sqrt(unitsToCitiesRatio) / 2
-    if (civInfo.wantsToFocusOn(Victory.Focus.Military) || isAtWar) modifier *= 2
-
-    if (Automation.afraidOfBarbarians(civInfo)) modifier = 3f // military units are pro-growth if pressured by barbs
-    if (!cityIsOverAverageProduction) modifier /= 5 // higher production cities will deal with this
-
-    val civilianUnit = city.getCenterTile().civilianUnit
-    if (civilianUnit != null && civilianUnit.hasUnique(UniqueType.FoundCity)
-            && city.getCenterTile().getTilesInDistance(city.getExpandRange()).none { it.militaryUnit?.civ == civInfo })
-        modifier = 5f // there's a settler just sitting here, doing nothing - BAD
-
-    if (!civInfo.isAIOrAutoPlaying()) modifier *= 1 // Players prefer to make their own unit choices usually
-    modifier *= personality.modifierFocus(PersonalityValue.Military, .4f)
-    
-    // Apply priority multiplier to the final modifier
-    val finalPriority = modifier * priorityMultiplier
-
-    private fun addMilitaryUnitChoice() {
         if (!cityIsOverAverageProduction) return // don't make any military units here. Infrastructure first!
         if (civInfo.stats.getUnitSupplyDeficit() > 0) return // we don't want more units if it's already hurting our empire
         if (!isAtWar && (civInfo.stats.statsForNextTurn.gold < 0 || militaryUnits > max(7, cities * 5))) return
@@ -264,6 +215,7 @@ class ConstructionAutomation(val cityConstructions: CityConstructions) {
         // Pass the calculated final priority to the addChoice function
         addChoice(relativeCostEffectiveness, militaryUnit, finalPriority)
     }
+
 
     private fun addWorkBoatChoice() {
         // Does the ruleset even have "Workboats"?
