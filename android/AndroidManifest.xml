@@ -53,12 +53,12 @@
         </activity>
 
         <activity
-    android:name="com.zephram0.uncivmod.AndroidLauncher"
-    android:launchMode="singleTask"
-    android:exported="true"
-    android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
-    android:screenOrientation="userLandscape"
-    tools:ignore="LockedOrientationActivity">
+			android:name="com.zephram0.uncivmod.AndroidLauncher"
+			android:launchMode="singleTask"
+			android:exported="true"
+			android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+			android:screenOrientation="userLandscape"
+			tools:ignore="LockedOrientationActivity">
 
 
             <intent-filter>
