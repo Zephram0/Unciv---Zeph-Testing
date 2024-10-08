@@ -175,15 +175,21 @@ class ConstructionAutomation(val cityConstructions: CityConstructions) {
         
         // Calculate the military focus target percentage
         val militaryUnit = Automation.chooseMilitaryUnit(city, units) ?: return
+        val militaryUnit = Automation.chooseMilitaryUnit(city, units) ?: return
         val currentSupply = civInfo.units.getCivUnitsSize().toFloat()
         val maxSupply = civInfo.stats.getUnitSupply().toFloat()
-        
+
+        // Calculate the military focus target percentage
+        val militaryFocus = personality[PersonalityValue.Military] / 10f
+        val targetSupplyPercentage = 0.2f + 0.7f * militaryFocus // Linearly scales from 20% to 90%
+
         // Calculate the current supply percentage
         val currentSupplyPercentage = currentSupply / maxSupply
 
         // Apply the priority multiplier based on the current supply percentage and target supply percentage
         var priorityMultiplier = 1.0f
         if (currentSupplyPercentage < targetSupplyPercentage) {
+
             // Linearly scale the multiplier from 2 at 0% supply to 1.5 at the target supply
             priorityMultiplier = 2f - 0.5f * (currentSupplyPercentage / targetSupplyPercentage)
         } else {
