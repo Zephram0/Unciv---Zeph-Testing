@@ -164,7 +164,7 @@ class ConstructionAutomation(val cityConstructions: CityConstructions) {
     }
 
     private fun addMilitaryUnitChoice() {
-        if (!isAtWar && !cityIsOverAverageProduction) return // don't make any military units here. Infrastructure first!
+        if (!cityIsOverAverageProduction) return // don't make any military units here. Infrastructure first!
         // There is a risk however, that these cities run out of things to build, and start to construct nothing
         if (civInfo.stats.getUnitSupplyDeficit() > 0) return // we don't want more units if it's already hurting our empire
         // todo: add worker disbandment and consumption of great persons if under attack & short on unit supply
@@ -177,7 +177,7 @@ class ConstructionAutomation(val cityConstructions: CityConstructions) {
         var modifier = 1 + sqrt(unitsToCitiesRatio) / 2
         if (civInfo.wantsToFocusOn(Victory.Focus.Military) || isAtWar) modifier *= 2
 
-        if (Automation.afraidOfBarbarians(civInfo)) modifier = 2f // military units are pro-growth if pressured by barbs
+        if (Automation.afraidOfBarbarians(civInfo)) modifier = 3f // military units are pro-growth if pressured by barbs
         if (!cityIsOverAverageProduction) modifier /= 5 // higher production cities will deal with this
 
         val civilianUnit = city.getCenterTile().civilianUnit
@@ -185,8 +185,8 @@ class ConstructionAutomation(val cityConstructions: CityConstructions) {
                 && city.getCenterTile().getTilesInDistance(city.getExpandRange()).none { it.militaryUnit?.civ == civInfo })
             modifier = 5f // there's a settler just sitting here, doing nothing - BAD
 
-        if (!civInfo.isAIOrAutoPlaying()) modifier /= 2 // Players prefer to make their own unit choices usually
-        modifier *= personality.modifierFocus(PersonalityValue.Military, .3f)
+        if (!civInfo.isAIOrAutoPlaying()) modifier *= 1 // Players prefer to make their own unit choices usually
+        modifier *= personality.modifierFocus(PersonalityValue.Military, .4f)
         addChoice(relativeCostEffectiveness, militaryUnit, modifier)
     }
 
