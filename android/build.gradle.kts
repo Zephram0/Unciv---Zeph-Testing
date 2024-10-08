@@ -5,7 +5,6 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    id("androidx.profileinstaller") version "1.2.0"
 }
 
 android {
@@ -23,13 +22,13 @@ android {
     }
     packaging {
         resources.excludes += "META-INF/robovm/ios/robovm.xml"
-        resources.excludes += "DebugProbesKt.bin"  // part of kotlinx-coroutines-android, should not go into the apk
+        resources.excludes += "DebugProbesKt.bin"
     }
     defaultConfig {
         namespace = BuildConfig.identifier
         applicationId = BuildConfig.identifier
         minSdk = 21
-        targetSdk = 34  // See #5044
+        targetSdk = 34
         versionCode = BuildConfig.appCodeNumber
         versionName = BuildConfig.appVersion
 
@@ -47,12 +46,6 @@ android {
             keyPassword = "android"
             storePassword = "android"
         }
-        create("release") {
-            storeFile = rootProject.file("my-release-key.jks")  // Path to your release keystore file
-            keyAlias = "Unciv Zeph"  // Replace with your alias name used during keystore generation
-            keyPassword = "1234qwer"  // Replace with the key password you used
-            storePassword = "1234qwer"  // Replace with the store password you used
-        }
     }
 
     buildTypes {
@@ -60,27 +53,27 @@ android {
             isDebuggable = true
         }
         release {
-            signingConfig = signingConfigs.getByName("release")  // Add this line
+            // Signing config for release build
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
             isDebuggable = false
-            matchingFallbacks += listOf("profile")  // Ensure the baseline profile is included in release build
         }
     }
 
     lint {
-        disable += "MissingTranslation"   // see res/values/strings.xml
+        disable += "MissingTranslation"
     }
     compileOptions {
         targetCompatibility = JavaVersion.VERSION_1_8
         isCoreLibraryDesugaringEnabled = true
     }
     androidResources {
-        ignoreAssetsPattern = "!SaveFiles:!fonts:!maps:!music:!mods"  // Don't add local save files and fonts to release, obviously
+        ignoreAssetsPattern = "!SaveFiles:!fonts:!maps:!music:!mods"
     }
     buildFeatures {
-        renderScript = false  // Disable to improve build speed if not needed
-        aidl = false  // Disable to improve build speed if not needed
+        renderScript = true
+        aidl = true
     }
 }
 
@@ -122,6 +115,7 @@ tasks.register<JavaExec>("run") {
     val path = if (localProperties.exists()) {
         val properties = Properties()
         localProperties.inputStream().use { properties.load(it) }
+
         properties.getProperty("sdk.dir") ?: System.getenv("ANDROID_HOME")
     } else {
         System.getenv("ANDROID_HOME")
@@ -136,16 +130,8 @@ tasks.register<JavaExec>("run") {
     }
 }
 
-tasks.register("generateBaselineProfile") {
-    doFirst {
-        println("Generating Baseline Profile for performance optimizations")
-    }
-    // Placeholder: You would run specific UI actions here if automating profile generation
-}
-
 dependencies {
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.work:work-runtime-ktx:2.8.1")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")
-    implementation("androidx.profileinstaller:profileinstaller:1.2.0")
 }
