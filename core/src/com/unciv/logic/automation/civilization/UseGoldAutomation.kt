@@ -14,6 +14,7 @@ import com.unciv.models.ruleset.tile.ResourceType
 import com.unciv.logic.map.BFS
 import com.unciv.logic.map.city.CityExpansion
 import com.unciv.logic.civilization.diplomacy.DiplomacyManager
+import com.unciv.models.ruleset.nation.PersonalityValue
 import java.util.*
 
 object UseGoldAutomation {
@@ -69,14 +70,11 @@ object UseGoldAutomation {
                 "Tile Expansion" -> {
                     for (city in civ.cities) {
                         if (shouldSpendOnTileExpansion(civ, city)) {
-                            val desirableTiles = getHighlyDesirableTiles(city)
-                            if (desirableTiles.isNotEmpty()) {
-                                val tileToPurchase = getMostDesirableTile(city)
-                                val tileCost = city.expansion.getGoldCostOfTile(tileToPurchase) // getGoldCostOfTile() is defined in CityExpansion.kt
-                                if (remainingGold >= tileCost) {
-                                    city.expansion.buyTile(tileToPurchase) // buyTile() is defined in CityExpansion.kt
-                                    remainingGold -= tileCost
-                                }
+                            val tileToPurchase = getMostDesirableTile(city) // Implemented below
+                            val tileCost = city.expansion.getGoldCostOfTile(tileToPurchase) // getGoldCostOfTile() is defined in CityExpansion.kt
+                            if (remainingGold >= tileCost) {
+                                city.expansion.buyTile(tileToPurchase) // buyTile() is defined in CityExpansion.kt
+                                remainingGold -= tileCost
                             }
                             if (remainingGold <= 0) break
                         }
@@ -105,31 +103,24 @@ object UseGoldAutomation {
     private fun calculateGoldSpendingPriority(civ: Civilization): List<Pair<String, Float>> {
         val personality = civ.getPersonality() // getPersonality() is defined in Civilization.kt
         val basePriority = mutableMapOf(
-            "Military Units" to personality["Military"],
-            "City-State Influence" to ((personality["Diplomacy"] + personality["Commerce"]) / 2),
-            "Buildings" to ((personality["Production"] + personality["Science"] + personality["Culture"]) / 3),
-            "Tile Expansion" to personality["Expansion"],
-            "Unit Upgrades" to personality["Military"]
+            "Military Units" to personality[PersonalityValue.Military],
+            "City-State Influence" to ((personality[PersonalityValue.Diplomacy] + personality[PersonalityValue.Commerce]) / 2),
+            "Buildings" to ((personality[PersonalityValue.Production] + personality[PersonalityValue.Science] + personality[PersonalityValue.Culture]) / 3),
+            "Tile Expansion" to personality[PersonalityValue.Expansion],
+            "Unit Upgrades" to personality[PersonalityValue.Military]
         )
 
         // Calculate current supply percentage and target supply percentage for military units
-        val currentSupply = civ.units.getCivUnitsSize().toFloat() // getCivUnitsSize() is defined in UnitsCollection.kt
+        val currentSupply = civ.units.civ.units.getCivUnitsSize() // getCivUnitsSize() is defined in UnitManager.kt.toFloat() // civ.units.getCivUnitsSize() // getCivUnitsSize() is defined in UnitManager.kt is defined in UnitsCollection.kt
         val maxSupply = civ.stats.getUnitSupply().toFloat() // getUnitSupply() is defined in Stats.kt
 
-        val militaryFocus = personality["Military"] / 10f
+        val militaryFocus = personality[PersonalityValue.Military] / 10f
         val targetSupplyPercentage = 0.2f + 0.7f * militaryFocus // Scale from 20% to 90% based on personality
 
         val currentSupplyPercentage = if (maxSupply > 0) currentSupply / maxSupply else 0f
 
         // Adjust military units priority with a priority multiplier
-        var priorityMultiplier = 1.0f
-        if (currentSupplyPercentage < targetSupplyPercentage) {
-            // Set priority multiplier to 1.1 until target supply is reached
-            priorityMultiplier = 1.1f
-        } else {
-            // Set priority multiplier to 0.9 if over target supply
-            priorityMultiplier = 0.9f
-        }
+        val priorityMultiplier = if (currentSupplyPercentage < targetSupplyPercentage) 1.1f else 0.9f
 
         // Apply priority multiplier to Military Units priority
         basePriority["Military Units"] = (basePriority["Military Units"] ?: 0f) * priorityMultiplier
@@ -161,10 +152,10 @@ object UseGoldAutomation {
      * @param civ The civilization whose units are being evaluated.
      * @return A list of military units available for purchase.
      */
-    private fun getUnitsToPurchase(civ: Civilization): List<BaseUnit> {
-        val unitsToPurchase = mutableListOf<BaseUnit>()
+    private fun getUnitsToPurchase(civ: Civilization): List<MapUnit // MapUnit replaces BaseUnit based on the UnitManager.kt structure> {
+        val unitsToPurchase = mutableListOf<MapUnit // MapUnit replaces BaseUnit based on the UnitManager.kt structure>()
         for (city in civ.cities) {
-            val units = city.getRuleset().units.values.filter { it.isMilitary && civ.canPurchaseUnit(it) } // canPurchaseUnit() is defined in Civilization.kt
+            val units = city.getRuleset().units.values.filter { it.isMilitary && civ.civ.units.canPurchaseUnit($1) // canPurchaseUnit() should be implemented in UnitManager.kt to check if a unit can be purchased } // civ.units.canPurchaseUnit($1) // canPurchaseUnit() should be implemented in UnitManager.kt to check if a unit can be purchased is defined in Civilization.kt
             unitsToPurchase.addAll(units)
         }
         return unitsToPurchase.sortedByDescending { calculateCityPurchaseValue(it.city, it) }
@@ -179,11 +170,11 @@ object UseGoldAutomation {
     private fun evaluateCityStateInfluencePurchase(civ: Civilization, cityState: Civilization): Float {
         val personality = civ.getPersonality() // getPersonality() is defined in Civilization.kt
         val influenceValue = when (cityState.cityStateType) {
-            "Cultural" -> personality["Culture"]
-            "Maritime" -> personality["Food"]
-            "Mercantile" -> personality["Happiness"]
-            "Militaristic" -> personality["Military"]
-            "Religious" -> personality["Faith"]
+            "Cultural" -> personality[PersonalityValue.Culture]
+            "Maritime" -> personality[PersonalityValue.Food]
+            "Mercantile" -> personality[PersonalityValue.Happiness]
+            "Militaristic" -> personality[PersonalityValue.Military]
+            "Religious" -> personality[PersonalityValue.Faith]
             else -> 0f
         }
         return influenceValue * 250 // Adjusted influence cost value
@@ -266,3 +257,7 @@ object UseGoldAutomation {
      * @param item The item being purchased.
      * @param city The city where the item will be purchased.
      */
+    private fun purchaseItem(civ: Civilization, item: IConstruction, city: City) {
+        city.cityConstructions.purchaseConstruction(item.name, -1, true) // purchaseConstruction() is defined in CityConstructions.kt
+    }
+}
