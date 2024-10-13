@@ -9,12 +9,10 @@ import com.unciv.models.ruleset.INonPerpetualConstruction
 import com.unciv.models.ruleset.ResourceType
 import com.unciv.models.ruleset.nation.PersonalityValue
 import com.unciv.models.ruleset.unit.BaseUnit
-import com.unciv.models.ruleset.unique.UniqueType
 import com.unciv.models.stats.Stat
 import com.unciv.logic.civilization.NotificationCategory
 import com.unciv.logic.civilization.NotificationIcon
 import com.unciv.logic.civilization.CityAction
-import com.unciv.models.ruleset.Ruleset
 
 object UseGoldAutomation {
 
@@ -77,10 +75,10 @@ object UseGoldAutomation {
                             if (UnitAutomation.tryUpgradeUnit(unit)) {
                                 remainingGold -= upgradeCost
                                 civ.addNotification(
-                                    "[${unit.baseUnit.name}] has been upgraded for [${upgradeCost}] gold.",
-                                    CityAction.withLocation(unit.getTile()?.getCity() ?: civ.getClosestCityToCityState(unit)),
-                                    NotificationCategory.Upgrade,
-                                    NotificationIcon.Upgrade
+                                    "[${unit.baseUnit.name ?: "Unknown Unit"}] has been upgraded for [${upgradeCost}] gold.",
+                                    CityAction.withLocation(unit.getTile()?.getCity() ?: civ.capitalCity),
+                                    NotificationCategory.Units,
+                                    NotificationIcon.Scout
                                 )
                             }
                         }
@@ -97,7 +95,7 @@ object UseGoldAutomation {
      * @return A list of spending categories and their respective priorities, sorted descendingly.
      */
     private fun calculateGoldSpendingPriority(civ: Civilization): List<Pair<String, Float>> {
-        val personality = civ.getPersonality()
+        val personality = civ.personality
         val basePriority = mutableMapOf(
             "Military Units" to personality[PersonalityValue.Military],
             "City-State Influence" to ((personality[PersonalityValue.Diplomacy] + personality[PersonalityValue.Commerce]) / 2),
@@ -132,11 +130,13 @@ object UseGoldAutomation {
     private fun getBuildingsToPurchase(civ: Civilization): List<BuildingPurchase> {
         val purchasableBuildings = mutableListOf<BuildingPurchase>()
         for (city in civ.cities.sortedByDescending { it.population.population }) {
-            val construction = city.cityConstructions.getCurrentConstruction()
-            if (construction !is INonPerpetualConstruction) continue
-            val statBuyCost = construction.getStatBuyCost(city, Stat.Gold) ?: continue
-            if (!city.cityConstructions.isConstructionPurchaseAllowed(construction, Stat.Gold, statBuyCost)) continue
-            purchasableBuildings.add(BuildingPurchase(construction, city, statBuyCost))
+            val constructions = city.cityConstructions.getPurchasableConstructions(Stat.Gold)
+            for (construction in constructions) {
+                if (construction !is INonPerpetualConstruction) continue
+                val statBuyCost = construction.getStatBuyCost(city, Stat.Gold) ?: continue
+                if (!city.cityConstructions.isConstructionPurchaseAllowed(construction, Stat.Gold, statBuyCost)) continue
+                purchasableBuildings.add(BuildingPurchase(construction, city, statBuyCost))
+            }
         }
         return purchasableBuildings.sortedBy { it.cost }
     }
@@ -167,12 +167,13 @@ object UseGoldAutomation {
     private fun getMilitaryUnitsToPurchase(civ: Civilization): List<MilitaryUnitPurchase> {
         val purchasableUnits = mutableListOf<MilitaryUnitPurchase>()
         for (city in civ.cities.sortedByDescending { it.population.population }) {
-            // Assuming military units can be purchased via city constructions with gold
-            val availableConstructions = city.cityConstructions.getPurchaseableConstructions(Stat.Gold)
-                .filterIsInstance<INonPerpetualConstruction>()
-                .filter { it.hasUnique(UniqueType.TriggersVictory) || it.hasUnique(UniqueType.EnablesMilitary) }
-            for (construction in availableConstructions) {
+            val constructions = city.cityConstructions.getPurchasableConstructions(Stat.Gold)
+            for (construction in constructions) {
+                if (construction !is INonPerpetualConstruction) continue
+                val baseUnit = civ.ruleset.units[construction.name] ?: continue
+                if (!baseUnit.isMilitaryUnit()) continue // Only military units
                 val cost = construction.getStatBuyCost(city, Stat.Gold) ?: continue
+                if (!city.cityConstructions.isConstructionPurchaseAllowed(construction, Stat.Gold, cost)) continue
                 purchasableUnits.add(MilitaryUnitPurchase(construction, city, cost))
             }
         }
@@ -193,7 +194,7 @@ object UseGoldAutomation {
                 "[${purchase.city.name ?: "Unknown City"}] has purchased [${purchase.construction.name ?: "Unknown Military Unit"}] for [${purchase.cost}] gold.",
                 CityAction.withLocation(purchase.city),
                 NotificationCategory.Production,
-                NotificationIcon.Unit
+                NotificationIcon.Scout
             )
             civ.addGold(-purchase.cost) // Deduct gold
         }
@@ -207,12 +208,12 @@ object UseGoldAutomation {
         val knownCityStates = civ.getKnownCivs().filter { it.isCityState }
 
         for (cityState in knownCityStates) {
-            val diploManager = cityState.cityStateFunctions.getDiplomacyManager(civ) ?: continue
-            val currentInfluence = diploManager.getInfluence()
+            val diploManager = civ.diplomacyManager.getDiplomaticStatus(cityState)
+            val currentInfluence = diploManager.influence
 
-            if (currentInfluence < 20) {
+            if (currentInfluence < 20 && civ.gold >= 500) {
                 influencePurchases.add(InfluencePurchase(cityState, 500)) // Example cost
-            } else if (currentInfluence < 40) {
+            } else if (currentInfluence < 40 && civ.gold >= 250) {
                 influencePurchases.add(InfluencePurchase(cityState, 250)) // Example cost
             }
         }
@@ -229,12 +230,12 @@ object UseGoldAutomation {
      */
     private fun purchaseCityStateInfluence(civ: Civilization, purchase: InfluencePurchase) {
         if (civ.gold >= purchase.cost) {
-            purchase.cityState.cityStateFunctions.receiveGoldGift(civ, purchase.cost)
+            purchase.cityState.cityStateInfo.receiveGoldGift(civ, purchase.cost)
             civ.addNotification(
-                "Gained [${purchase.cost}] influence with [${purchase.cityState.name ?: "Unknown City-State"}] via gold gift.",
-                CityAction.withLocation(civ.getClosestCityToCityState(purchase.cityState)),
+                "Gained influence with [${purchase.cityState.name ?: "Unknown City-State"}] via gold gift.",
+                CityAction.withLocation(civ.capitalCity),
                 NotificationCategory.Diplomacy,
-                NotificationIcon.Gift
+                NotificationIcon.Diplomacy
             )
             civ.addGold(-purchase.cost) // Deduct gold
         }
@@ -247,7 +248,7 @@ object UseGoldAutomation {
         val tileExpansions = mutableListOf<TileExpansion>()
         for (city in civ.cities) {
             if (shouldSpendOnTileExpansion(civ, city)) {
-                val tileToPurchase = getMostDesirableTile(city)
+                val tileToPurchase = getMostDesirableTile(city) ?: continue
                 val tileCost = city.expansion.getGoldCostOfTile(tileToPurchase)
                 tileExpansions.add(TileExpansion(city, tileToPurchase, tileCost))
             }
@@ -269,8 +270,8 @@ object UseGoldAutomation {
             civ.addNotification(
                 "[${expansion.city.name ?: "Unknown City"}] has expanded to tile [${expansion.tile.position}] for [${expansion.cost}] gold.",
                 CityAction.withLocation(expansion.city),
-                NotificationCategory.Expansion,
-                NotificationIcon.Tile
+                NotificationCategory.Cities,
+                NotificationIcon.City
             )
             civ.addGold(-expansion.cost) // Deduct gold
         }
@@ -294,10 +295,8 @@ object UseGoldAutomation {
      * Extension function to get the upgraded unit.
      */
     private fun MapUnit.getUpgradedUnit(): BaseUnit? {
-        // Assuming BaseUnit has a property 'upgradesTo' which is a list of unit names it can upgrade to
         val upgradeName = this.baseUnit.upgradesTo.firstOrNull() ?: return null
-        // Access the ruleset via civ.ruleset.units
-        return this.civ.getRuleset().units[upgradeName]
+        return this.civ.ruleset.units[upgradeName]
     }
 
     /**
@@ -309,57 +308,18 @@ object UseGoldAutomation {
     }
 
     /**
-     * Automate interactions with city-states
+     * Determines whether the civilization should spend gold on tile expansion for a given city.
      */
-    private fun useGoldForCityStates(civ: Civilization) {
-        // Get known city-states that are not yet allied or have low influence
-        val knownCityStates = civ.getKnownCivs().filter { it.isCityState }
-
-        for (cityState in knownCityStates) {
-            val diploManager = cityState.cityStateFunctions.getDiplomacyManager(civ) ?: continue
-            val currentInfluence = diploManager.getInfluence()
-
-            if (currentInfluence < 20 && civ.gold >= 500) {
-                // Perform Diplomatic Marriage
-                if (cityState.cityStateFunctions.canBeMarriedBy(civ)) {
-                    cityState.cityStateFunctions.diplomaticMarriage(civ)
-                    civ.addNotification(
-                        "Performed diplomatic marriage with [${cityState.name ?: "Unknown City-State"}] for [500] gold.",
-                        CityAction.withLocation(civ.getClosestCityToCityState(cityState)),
-                        NotificationCategory.Diplomacy,
-                        NotificationIcon.Marriage
-                    )
-                    civ.addGold(-500)
-                }
-            } else if (currentInfluence < 40 && civ.gold >= 250) {
-                // Gain Influence via Gold Gift
-                cityState.cityStateFunctions.receiveGoldGift(civ, 250)
-                civ.addNotification(
-                    "Gained [250] influence with [${cityState.name ?: "Unknown City-State"}] via gold gift.",
-                    CityAction.withLocation(civ.getClosestCityToCityState(cityState)),
-                    NotificationCategory.Diplomacy,
-                    NotificationIcon.Gift
-                )
-                civ.addGold(-250)
-            }
-        }
-    }
-
-    /**
-     * Extension function to get the closest city to a city-state.
-     */
-    private fun Civilization.getClosestCityToCityState(cityState: Civilization): City? {
-        return this.cities.minByOrNull { it.getCenterTile().aerialDistanceTo(cityState.getCenterTile()) }
+    private fun shouldSpendOnTileExpansion(civ: Civilization, city: City): Boolean {
+        return city.cityConstructions.canExpand() && civ.gold >= city.expansion.getMinimumGoldCost()
     }
 
     /**
      * Retrieves the most desirable tile for a city to purchase based on predefined criteria.
      */
-    private fun getMostDesirableTile(city: City): Tile {
-        // Implement the logic to determine the most desirable tile
-        // For example, prioritize tiles with natural wonders, resources, or strategic locations
-        val desirableTiles = city.tilesInRange.filter { it.isDesirableForExpansion(civ = city.civ) }
-        return desirableTiles.maxByOrNull { calculateTileValue(it) } ?: throw IllegalStateException("No desirable tiles found.")
+    private fun getMostDesirableTile(city: City): Tile? {
+        val desirableTiles = city.tilesInRange.filter { it.isDesirableForExpansion(city.civ) }
+        return desirableTiles.maxByOrNull { calculateTileValue(it) }
     }
 
     /**
@@ -368,19 +328,7 @@ object UseGoldAutomation {
     private fun Tile.isDesirableForExpansion(civ: Civilization): Boolean {
         if (!isVisible(civ)) return false
         if (getOwner() != null) return false
-        // Add more criteria as needed
         return true
-    }
-
-    /**
-     * Determines whether the civilization should spend gold on tile expansion for a given city.
-     */
-    private fun shouldSpendOnTileExpansion(civ: Civilization, city: City): Boolean {
-        // Example criteria:
-        // - The city has available tile slots
-        // - The civilization is not overextending
-        // - The city has strategic or resource-based reasons to expand
-        return city.cityConstructions.canExpand() && civ.gold >= city.expansion.getMinimumGoldCost()
     }
 
     /**
@@ -392,7 +340,7 @@ object UseGoldAutomation {
         if (tile.naturalWonder != null) value += 50
 
         // Assign value based on resource type
-        tile.resource?.let { resourceName ->
+        tile.resource?.let {
             val resource = tile.tileResource
             value += when (resource.resourceType) {
                 ResourceType.Luxury -> 30
@@ -400,11 +348,6 @@ object UseGoldAutomation {
                 else -> 20
             }
         }
-
-        // Assign value if the tile has a non-pillaged improvement
-        if (tile.improvement != null && !tile.improvementIsPillaged) value += 25
-
-        // Additional factors can be added here as needed
 
         return value
     }
