@@ -17,11 +17,6 @@ object UseGoldAutomation {
 
     /** allow AI to spend money to purchase city-state friendship, buildings & unit */
     fun useGold(civ: Civilization) {
-        for (unit in civ.units.getCivUnits())
-            UnitAutomation.tryUpgradeUnit(unit)
-        
-        if (civ.isMajorCiv())
-            useGoldForCityStates(civ)
 
         for (city in civ.cities.sortedByDescending { it.population.population }) {
             val construction = city.cityConstructions.getCurrentConstruction()
@@ -31,6 +26,12 @@ object UseGoldAutomation {
             if (civ.gold < statBuyCost / 3) continue
             city.cityConstructions.purchaseConstruction(construction, 0, true)
         }
+
+        for (unit in civ.units.getCivUnits())
+            UnitAutomation.tryUpgradeUnit(unit)
+        
+        if (civ.isMajorCiv())
+            useGoldForCityStates(civ)
 
         maybeBuyCityTiles(civ)
     }
