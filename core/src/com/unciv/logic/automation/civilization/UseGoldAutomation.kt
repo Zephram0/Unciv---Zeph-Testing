@@ -27,9 +27,8 @@ object UseGoldAutomation {
         //    city.cityConstructions.purchaseConstruction(construction, 0, true)
         //}
 
-
         for (city in civ.cities.sortedByDescending {
-            city.cityConstructions.turnsToConstruction(city.cityConstructions.currentConstructionFromQueue)
+            it.cityConstructions.turnsToConstruction(it.cityConstructions.currentConstructionFromQueue)
         }) {
             val construction = city.cityConstructions.getCurrentConstruction()
             if (construction !is INonPerpetualConstruction) continue
