@@ -18,7 +18,19 @@ object UseGoldAutomation {
     /** allow AI to spend money to purchase city-state friendship, buildings & unit */
     fun useGold(civ: Civilization) {
 
-        for (city in civ.cities.sortedBy { it.cityStats.currentCityStats.production }) {
+        //for (city in civ.cities.sortedBy { it.cityStats.currentCityStats.production }) {
+        //    val construction = city.cityConstructions.getCurrentConstruction()
+        //    if (construction !is INonPerpetualConstruction) continue
+        //    val statBuyCost = construction.getStatBuyCost(city, Stat.Gold) ?: continue
+        //    if (!city.cityConstructions.isConstructionPurchaseAllowed(construction, Stat.Gold, statBuyCost)) continue
+        //    if (civ.gold < statBuyCost / 1.1) continue
+        //    city.cityConstructions.purchaseConstruction(construction, 0, true)
+        //}
+
+
+        for (city in civ.cities.sortedByDescending {
+            city.cityConstructions.turnsToConstruction(city.cityConstructions.currentConstructionFromQueue)
+        }) {
             val construction = city.cityConstructions.getCurrentConstruction()
             if (construction !is INonPerpetualConstruction) continue
             val statBuyCost = construction.getStatBuyCost(city, Stat.Gold) ?: continue
