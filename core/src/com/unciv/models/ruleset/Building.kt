@@ -64,8 +64,8 @@ class Building : RulesetStatsObject(), INonPerpetualConstruction {
     fun getDescription(city: City, showAdditionalInfo: Boolean) = BuildingDescriptions.getDescription(this, city, showAdditionalInfo)
     override fun getCivilopediaTextLines(ruleset: Ruleset) = BuildingDescriptions.getCivilopediaTextLines(this, ruleset)
 
-    override fun isHiddenBySettings(gameInfo: GameInfo): Boolean {
-        if (super<INonPerpetualConstruction>.isHiddenBySettings(gameInfo)) return true
+    override fun isUnavailableBySettings(gameInfo: GameInfo): Boolean {
+        if (super<INonPerpetualConstruction>.isUnavailableBySettings(gameInfo)) return true
         if (!gameInfo.gameParameters.nuclearWeaponsEnabled && hasUnique(UniqueType.EnablesNuclearWeapons)) return true
         return isHiddenByStartingEra(gameInfo)
     }
@@ -150,8 +150,9 @@ class Building : RulesetStatsObject(), INonPerpetualConstruction {
 
 
     override fun canBePurchasedWithStat(city: City?, stat: Stat): Boolean {
-        if (stat == Stat.Gold && isAnyWonder()) return false
-        if (city == null) return super.canBePurchasedWithStat(null, stat)
+        val purchaseReason = canBePurchasedWithStatReasons(null, stat)
+        if (purchaseReason != PurchaseReason.UniqueAllowed && stat == Stat.Gold && isAnyWonder()) return false
+        if (city == null) return purchaseReason.purchasable
 
         val conditionalState = StateForConditionals(civInfo = city.civ, city = city)
         return (
@@ -247,6 +248,10 @@ class Building : RulesetStatsObject(), INonPerpetualConstruction {
 
         val rejectionReasons = getRejectionReasons(cityConstructions)
 
+        if (hasUnique(UniqueType.ShowsWhenUnbuilable, StateForConditionals(cityConstructions.city)) &&
+            rejectionReasons.none { it.isNeverVisible() })
+            return true
+
         if (rejectionReasons.any { it.type == RejectionReasonType.RequiresBuildingInSomeCities }
                 && cityConstructions.city.civ.gameInfo.gameParameters.oneCityChallenge)
             return false // You will never be able to get more cities, this building is effectively disabled
@@ -264,7 +269,7 @@ class Building : RulesetStatsObject(), INonPerpetualConstruction {
         if (cityConstructions.isBuilt(name))
             yield(RejectionReasonType.AlreadyBuilt.toInstance())
 
-        if (isHiddenBySettings(civ.gameInfo)) {
+        if (isUnavailableBySettings(civ.gameInfo)) {
             // Repeat the starting era test isHiddenBySettings already did to change the RejectionReasonType
             if (isHiddenByStartingEra(civ.gameInfo))
                 yield(RejectionReasonType.WonderDisabledEra.toInstance())
