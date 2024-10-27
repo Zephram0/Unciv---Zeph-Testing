@@ -2,16 +2,20 @@ package com.unciv.logic.automation.civilization
 
 import com.unciv.logic.automation.unit.UnitAutomation
 import com.unciv.logic.city.City
+import com.unciv.logic.city.CityStats
+import com.unciv.logic.city.managers.CityConquestFunctions
 import com.unciv.logic.civilization.Civilization
+import com.unciv.logic.civilization.diplomacy.CityStateFunctions
 import com.unciv.logic.map.BFS
 import com.unciv.logic.map.tile.Tile
 import com.unciv.models.ruleset.INonPerpetualConstruction
 import com.unciv.models.ruleset.Victory
 import com.unciv.models.ruleset.tile.ResourceType
 import com.unciv.models.ruleset.nation.Personality
-import com.unciv.models.stats.Stat
 import com.unciv.models.ruleset.IConstruction
 import com.unciv.models.ruleset.tile.TileImprovement
+import com.unciv.models.ruleset.unique.UniqueType
+import com.unciv.models.stats.Stat
 import java.util.*
 
 object UseGoldAutomation {
@@ -64,7 +68,7 @@ object UseGoldAutomation {
 
     private fun calculatePerceivedTileValue(tile: Tile, personality: Personality): Int {
         val yields = tile.baseTileInfo.yields
-        return calculatePerceivedValueLinear(yields.food, personality.food) +
+        return calculatePerceivedValueLinear(yields.food.toInt(), personality.food) +
                calculatePerceivedValueLinear(yields.production, personality.production) +
                calculatePerceivedValueLinear(yields.gold, personality.gold) +
                calculatePerceivedValueLinear(yields.science, personality.science) +
@@ -98,7 +102,7 @@ object UseGoldAutomation {
 
     private fun isTileBetterThanCurrent(city: City, newTile: Tile, personality: Personality, civ: Civilization): Boolean {
         val currentTiles = city.workingTiles
-        val worstTile = currentTiles.minByOrNull { calculatePerceivedTileValue(it, personality) } ?: return false
+        val worstTile = currentTiles.minByOrNull { tile -> calculatePerceivedTileValue(tile, personality) } ?: return false
 
         val perceivedValue = if (hasAvailableWorkers(civ, newTile) && canBeImproved(newTile)) {
             maxOfPerceivedValuesOfPossibleImprovements(newTile, personality, civ)
