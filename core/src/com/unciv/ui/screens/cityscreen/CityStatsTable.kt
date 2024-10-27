@@ -2,30 +2,19 @@ package com.unciv.ui.screens.cityscreen
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
-import com.badlogic.gdx.scenes.scene2d.ui.Cell
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import com.unciv.Constants
-import com.unciv.UncivGame
-import com.unciv.logic.city.City
-import com.unciv.logic.city.CityFlags
-import com.unciv.logic.city.CityFocus
-import com.unciv.logic.city.CityResources
-import com.unciv.logic.city.GreatPersonPointsBreakdown
+import com.unciv.logic.city.*
 import com.unciv.models.Counter
 import com.unciv.models.ruleset.Building
 import com.unciv.models.ruleset.tile.TileResource
 import com.unciv.models.ruleset.unique.UniqueType
 import com.unciv.models.stats.Stat
 import com.unciv.models.translations.tr
-import com.unciv.ui.components.extensions.addSeparator
-import com.unciv.ui.components.extensions.center
-import com.unciv.ui.components.extensions.colorFromRGB
-import com.unciv.ui.components.extensions.surroundWithCircle
-import com.unciv.ui.components.extensions.toGroup
-import com.unciv.ui.components.extensions.toLabel
-import com.unciv.ui.components.extensions.toTextButton
+import com.unciv.ui.components.extensions.*
 import com.unciv.ui.components.fonts.Fonts
 import com.unciv.ui.components.input.KeyboardBinding
 import com.unciv.ui.components.input.onActivation
@@ -33,7 +22,6 @@ import com.unciv.ui.components.input.onClick
 import com.unciv.ui.components.widgets.ExpanderTab
 import com.unciv.ui.images.ImageGetter
 import com.unciv.ui.screens.basescreen.BaseScreen
-import com.unciv.ui.screens.civilopediascreen.CivilopediaScreen
 import kotlin.math.ceil
 import kotlin.math.round
 import com.unciv.ui.components.widgets.AutoScrollPane as ScrollPane
@@ -44,8 +32,14 @@ class CityStatsTable(private val cityScreen: CityScreen) : Table() {
     private val lowerTable = Table() // table that will be in the ScrollPane
     private val lowerPane: ScrollPane
     private val city = cityScreen.city
-    private val lowerCell: Cell<ScrollPane>
-
+    private val headerIcon = ImageGetter.getImage("OtherIcons/BackArrow").apply {
+        setSize(18f, 18f)
+        setOrigin(Align.center)
+        rotation = 90f
+    }
+    private var headerIconClickArea = Table()
+    private var isOpen = true
+    
     private val detailedStatsButton = "Stats".toTextButton().apply {
         labelCell.pad(10f)
         onActivation(binding = KeyboardBinding.ShowStats) {
@@ -65,16 +59,22 @@ class CityStatsTable(private val cityScreen: CityScreen) : Table() {
             "CityScreen/CityStatsTable/InnerTable",
             tintColor = Color.BLACK.cpy().apply { a = 0.8f }
         )
-        innerTable.add(upperTable).row()
 
         upperTable.defaults().pad(2f)
         lowerTable.defaults().pad(2f)
         lowerPane = ScrollPane(lowerTable)
         lowerPane.setOverscroll(false, false)
         lowerPane.setScrollingDisabled(true, false)
-        lowerCell = innerTable.add(lowerPane)
 
-        add(innerTable)
+        add(innerTable).growX()
+
+        // collapse icon with larger click area
+        headerIconClickArea.add(headerIcon).size(headerIcon.width).pad(6f+2f, 12f, 6f, 2f )
+        headerIconClickArea.touchable = Touchable.enabled
+        headerIconClickArea.onClick {
+            isOpen = !isOpen
+            cityScreen.updateWithoutConstructionAndMap()
+        }
     }
 
     fun update(height: Float) {
@@ -105,10 +105,10 @@ class CityStatsTable(private val cityScreen: CityScreen) : Table() {
             val valueToDisplay = if (stat == Stat.Happiness) city.cityStats.happinessList.values.sum() else amount
             miniStatsTable.add(round(valueToDisplay).toInt().toLabel()).padRight(5f)
         }
-        upperTable.add(miniStatsTable)
-
+        upperTable.add(miniStatsTable).expandX()
         upperTable.addSeparator()
-        upperTable.add(detailedStatsButton).row()
+        
+        lowerTable.add(detailedStatsButton).row()
         addText()
 
         // begin lowerTable
@@ -122,11 +122,20 @@ class CityStatsTable(private val cityScreen: CityScreen) : Table() {
 
         addBuildingsInfo()
 
+        headerIcon.rotation = if(isOpen) 90f else 0f
+        
+        innerTable.clear()
+        innerTable.add(upperTable).expandX()
+        innerTable.add(headerIconClickArea).row()
+        val lowerCell = if (isOpen) {
+            innerTable.add(lowerPane).colspan(2)
+        } else null
+
         upperTable.pack()
         lowerTable.pack()
         lowerPane.layout()
         lowerPane.updateVisualScroll()
-        lowerCell.maxHeight(height - upperTable.height - 8f) // 2 on each side of each cell in innerTable
+        lowerCell?.maxHeight(height - upperTable.height - 8f) // 2 on each side of each cell in innerTable
 
         innerTable.pack()  // update innerTable
         pack()  // update self last
@@ -170,9 +179,9 @@ class CityStatsTable(private val cityScreen: CityScreen) : Table() {
                 }.tr()
         turnsToPopString += " (${city.population.foodStored}${Fonts.food}/${city.population.getFoodToNextPopulation()}${Fonts.food})"
 
-        upperTable.add(unassignedPopLabel).row()
-        upperTable.add(turnsToExpansionString.toLabel()).row()
-        upperTable.add(turnsToPopString.toLabel()).row()
+        lowerTable.add(unassignedPopLabel).row()
+        lowerTable.add(turnsToExpansionString.toLabel()).row()
+        lowerTable.add(turnsToPopString.toLabel()).row()
 
         val tableWithIcons = Table()
         tableWithIcons.defaults().pad(2f)
@@ -212,7 +221,7 @@ class CityStatsTable(private val cityScreen: CityScreen) : Table() {
             tableWithIcons.add(wltkLabel).row()
         }
 
-        upperTable.add(tableWithIcons).row()
+        lowerTable.add(tableWithIcons).row()
     }
 
     private fun addCitizenManagement() {
@@ -364,7 +373,8 @@ class CityStatsTable(private val cityScreen: CityScreen) : Table() {
 
             val info = Table()
 
-            info.add(ImageGetter.getUnitIcon(greatPersonName, Color.GOLD).toGroup(20f))
+            val greatPerson = city.getRuleset().units[greatPersonName] ?: continue
+            info.add(ImageGetter.getUnitIcon(greatPerson, Color.GOLD).toGroup(20f))
                 .left().padBottom(4f).padRight(5f)
             info.add("{$greatPersonName} (+$gppPerTurn)".toLabel(hideIcons = true)).left().padBottom(4f).expandX().row()
 

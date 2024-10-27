@@ -44,9 +44,11 @@ class PolicyManager : IsPartOfGameInfoSerialization {
         get() {
             val value = HashMap<PolicyBranch, Int>()
             for (branch in branches) {
-                val victoryPriority = branch.priorities[civInfo.nation.preferredVictoryType] ?: 0
+                val victoryPriority = civInfo.getPreferredVictoryTypes().sumOf { branch.priorities[it] ?: 0}
                 val personalityPriority = civInfo.getPersonality().priorities[branch.name] ?: 0
-                value[branch] = victoryPriority + personalityPriority
+                val branchPriority = (victoryPriority + personalityPriority) * 
+                        branch.getWeightForAiDecision(StateForConditionals(civInfo))
+                value[branch] = branchPriority.roundToInt()
             }
             return value
         }
@@ -258,9 +260,8 @@ class PolicyManager : IsPartOfGameInfoSerialization {
         if (!adoptedPolicies.remove(policy.name))
             throw IllegalStateException("Attempt to remove non-adopted Policy ${policy.name}")
 
-        if (!assumeWasFree) {
-            if (--numberOfAdoptedPolicies < 0)
-                throw IllegalStateException("Attempt to remove Policy ${policy.name} but civ only has free policies left")
+        if (!assumeWasFree && numberOfAdoptedPolicies > 0) {
+            numberOfAdoptedPolicies -= 1
         }
 
         removePolicyFromTransients(policy)
