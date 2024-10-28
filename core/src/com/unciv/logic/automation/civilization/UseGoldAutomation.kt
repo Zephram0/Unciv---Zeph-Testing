@@ -2,8 +2,9 @@ package com.unciv.logic.automation.civilization
 
 import com.unciv.models.stats.Stat
 import com.unciv.models.ruleset.nation.Personality
-import com.unciv.models.ruleset.constructions.INonPerpetualConstruction
+import com.unciv.models.ruleset.constructions.IConstruction
 import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
+import com.unciv.logic.map.MapUnit
 import com.unciv.logic.automation.civilization.purchases.influence.CityStateRelations
 import com.unciv.logic.automation.civilization.purchases.items.buildings.BuildingPurchasing
 import com.unciv.logic.automation.civilization.purchases.items.units.UnitPurchasing
@@ -27,8 +28,7 @@ object UseGoldAutomation {
             it.cityConstructions.turnsToConstruction(it.cityConstructions.currentConstructionFromQueue)
         }) {
             val construction = city.cityConstructions.getCurrentConstruction() ?: continue
-            // Skip if the construction is a perpetual construction (e.g., Wealth, Research)
-            if (construction !is INonPerpetualConstruction) continue
+            if (construction !is IConstruction) continue
             // Get the gold cost to buy the construction immediately
             val statBuyCost = construction.getStatBuyCost(city, Stat.Gold) ?: continue
             // Check if the construction can be purchased with gold

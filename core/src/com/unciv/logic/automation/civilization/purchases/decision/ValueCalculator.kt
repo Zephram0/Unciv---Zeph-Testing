@@ -1,12 +1,11 @@
 package com.unciv.logic.automation.civilization.purchases.decision
 
 import com.unciv.logic.city.City
-import com.unciv.logic.map.TileInfo
 import com.unciv.models.ruleset.tile.TileImprovement
 import com.unciv.models.stats.Stat
 import com.unciv.models.ruleset.nation.Personality
 import com.unciv.models.ruleset.unit.UnitType
-import com.unciv.models.ruleset.building.Building
+import com.unciv.models.ruleset.Building
 
 object ValueCalculator {
 
@@ -15,11 +14,11 @@ object ValueCalculator {
      */
     fun calculatePerceivedConstructionValue(construction: Any, city: City, personality: Personality): Int {
         val baseValue = when (construction) {
-            is Building -> construction.getStatBuyCost(city, Stat.Gold) ?: return 0
-            is UnitType -> construction.getStatBuyCost(city, Stat.Gold) ?: return 0
+            is Building -> (construction.getStatBuyCost(city, Stat.Gold) ?: return 0).toInt()
+            is UnitType -> (construction.getStatBuyCost(city, Stat.Gold) ?: return 0).toInt()
             else -> return 0
         }
-        return when (construction.getStat()) {
+        return when ((construction as? Building)?.getStat() ?: (construction as? UnitType)?.getStat()) {
             Stat.Science -> calculatePerceivedValueLinear(baseValue, personality.science)
             Stat.Production -> calculatePerceivedValueLinear(baseValue, personality.production)
             Stat.Culture -> calculatePerceivedValueLinear(baseValue, personality.culture)
