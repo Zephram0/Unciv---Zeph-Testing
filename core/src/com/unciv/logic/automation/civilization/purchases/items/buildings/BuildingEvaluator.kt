@@ -2,7 +2,7 @@ package com.unciv.logic.automation.civilization.purchases.items.buildings
 
 import com.unciv.logic.city.City
 import com.unciv.models.ruleset.building.Building
-import com.unciv.models.stats.Personality
+import com.unciv.logic.civilization.Personality
 
 object BuildingEvaluator {
 

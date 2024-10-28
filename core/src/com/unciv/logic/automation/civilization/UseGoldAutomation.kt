@@ -1,5 +1,9 @@
-package com.unciv.logic.automation.civilization
+package com.unciv.logic.automation.civilization.purchases
 
+import com.unciv.logic.stats.Stat
+import com.unciv.logic.civilization.Personality
+import com.unciv.logic.construction.Construction
+import com.unciv.logic.unit.Unit
 import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
 import com.unciv.logic.automation.civilization.purchases.influence.CityStateRelations
 import com.unciv.logic.automation.civilization.purchases.items.buildings.BuildingPurchasing
@@ -8,8 +12,6 @@ import com.unciv.logic.automation.civilization.purchases.tiles.TilePurchasing
 import com.unciv.logic.automation.civilization.purchases.unit.UnitEnhancements
 import com.unciv.logic.civilization.Civilization
 import com.unciv.models.ruleset.INonPerpetualConstruction
-import com.unciv.models.ruleset.Stat
-import com.unciv.models.stats.Personality
 
 object UseGoldAutomation {
 

@@ -7,7 +7,7 @@ import com.unciv.logic.city.City
 import com.unciv.logic.map.BFS
 import com.unciv.logic.map.tile.Tile
 import com.unciv.models.ruleset.tile.ResourceType
-import com.unciv.models.stats.Personality
+import com.unciv.logic.civilization.Personality
 import java.util.SortedMap
 import java.util.TreeMap
 
