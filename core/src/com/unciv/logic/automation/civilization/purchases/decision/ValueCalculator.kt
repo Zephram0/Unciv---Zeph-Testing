@@ -1,11 +1,11 @@
 package com.unciv.logic.automation.civilization.purchases.decision
 
 import com.unciv.logic.city.City
-import com.unciv.models.ruleset.tile.TileImprovement
+import com.unciv.models.ruleset.Building
+import com.unciv.models.ruleset.unit.UnitType
 import com.unciv.models.stats.Stat
 import com.unciv.models.ruleset.nation.Personality
-import com.unciv.models.ruleset.unit.UnitType
-import com.unciv.models.ruleset.Building
+import com.unciv.models.stats.Stats
 
 object ValueCalculator {
 
@@ -13,12 +13,11 @@ object ValueCalculator {
      * Calculates the perceived value of a construction (building or unit) based on the AI's personality.
      */
     fun calculatePerceivedConstructionValue(construction: Any, city: City, personality: Personality): Int {
-        val baseValue = when (construction) {
-            is Building -> (construction.getStatBuyCost(city, Stat.Gold) ?: return 0).toInt()
-            is UnitType -> (construction.getStatBuyCost(city, Stat.Gold) ?: return 0).toInt()
-            else -> return 0
-        }
-        return when ((construction as? Building)?.getStat() ?: (construction as? UnitType)?.getStat()) {
+        val stats = getStats(construction, city)
+        val dominantStat = getDominantStat(stats) ?: return 0
+        val baseValue = stats[Stat.Gold]?.toInt() ?: return 0
+
+        return when (dominantStat) {
             Stat.Science -> calculatePerceivedValueLinear(baseValue, personality.science)
             Stat.Production -> calculatePerceivedValueLinear(baseValue, personality.production)
             Stat.Culture -> calculatePerceivedValueLinear(baseValue, personality.culture)
@@ -29,41 +28,21 @@ object ValueCalculator {
     }
 
     /**
-     * Calculates the perceived value of a tile based on its yields and the AI's personality.
+     * Retrieves all stats for a given construction.
      */
-    fun calculatePerceivedTileValue(tile: TileInfo, personality: Personality): Int {
-        val yields = tile.getBaseTileInfo().yields
-        return calculatePerceivedValueLinear(yields.food, personality.food) +
-               calculatePerceivedValueLinear(yields.production, personality.production) +
-               calculatePerceivedValueLinear(yields.gold, personality.gold) +
-               calculatePerceivedValueLinear(yields.science, personality.science) +
-               calculatePerceivedValueLinear(yields.culture, personality.culture) +
-               calculatePerceivedValueLinear(yields.faith, personality.faith) +
-               calculatePerceivedValueLinear(yields.happiness, personality.happiness)
+    private fun getStats(construction: Any, city: City): Stats {
+        return when (construction) {
+            is Building -> construction.getStats(city)
+            is UnitType -> construction.getStats(city)
+            else -> Stats()
+        }
     }
 
     /**
-     * Calculates the perceived value of a tile with a specific improvement.
+     * Determines the most significant stat from a map of stats.
      */
-    fun calculatePerceivedImprovedTileValue(
-        tile: TileInfo,
-        improvement: TileImprovement,
-        personality: Personality
-    ): Int {
-        val yields = tile.getBaseTileInfo().yields + improvement.yields
-        val improvementValue = calculatePerceivedValueLinear(yields.food, personality.food) +
-                               calculatePerceivedValueLinear(yields.production, personality.production) +
-                               calculatePerceivedValueLinear(yields.gold, personality.gold) +
-                               calculatePerceivedValueLinear(yields.science, personality.science) +
-                               calculatePerceivedValueLinear(yields.culture, personality.culture) +
-                               calculatePerceivedValueLinear(yields.faith, personality.faith) +
-                               calculatePerceivedValueLinear(yields.culture, personality.culture) +
-                               calculatePerceivedValueLinear(yields.faith, personality.faith) +
-                               calculatePerceivedValueLinear(yields.happiness, personality.happiness)
-        val removalValue = tile.feature?.removalYield?.production?.let {
-            calculatePerceivedValueLinear(it, personality.production)
-        } ?: 0
-        return improvementValue + removalValue
+    private fun getDominantStat(stats: Stats): Stat? {
+        return stats.maxByOrNull { it.value }?.key
     }
 
     /**

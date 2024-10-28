@@ -2,7 +2,7 @@ package com.unciv.logic.automation.civilization
 
 import com.unciv.models.stats.Stat
 import com.unciv.models.ruleset.nation.Personality
-import com.unciv.models.ruleset.IConstruction
+import com.unciv.models.ruleset.INonPerpetualConstruction
 import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
 import com.unciv.logic.map.mapunit.MapUnit
 import com.unciv.logic.automation.civilization.purchases.influence.CityStateRelations
@@ -28,7 +28,7 @@ object UseGoldAutomation {
             it.cityConstructions.turnsToConstruction(it.cityConstructions.currentConstructionFromQueue)
         }) {
             val construction = city.cityConstructions.getCurrentConstruction() ?: continue
-            if (construction !is IConstruction) continue
+            if (construction !is INonPerpetualConstruction) continue
             // Get the gold cost to buy the construction immediately
             val statBuyCost = construction.getStatBuyCost(city, Stat.Gold) ?: continue
             // Check if the construction can be purchased with gold
