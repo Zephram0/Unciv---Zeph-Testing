@@ -2,9 +2,9 @@ package com.unciv.logic.automation.civilization
 
 import com.unciv.models.stats.Stat
 import com.unciv.models.ruleset.nation.Personality
-import com.unciv.models.ruleset.constructions.IConstruction
+import com.unciv.models.ruleset.IConstruction
 import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
-import com.unciv.logic.map.MapUnit
+import com.unciv.logic.map.mapunit.MapUnit
 import com.unciv.logic.automation.civilization.purchases.influence.CityStateRelations
 import com.unciv.logic.automation.civilization.purchases.items.buildings.BuildingPurchasing
 import com.unciv.logic.automation.civilization.purchases.items.units.UnitPurchasing
