@@ -1,19 +1,24 @@
 package com.unciv.logic.automation.civilization.purchases.decision
 
 import com.unciv.logic.city.City
-import com.unciv.logic.map.tile.Tile
+import com.unciv.logic.map.TileInfo
 import com.unciv.models.ruleset.tile.TileImprovement
 import com.unciv.models.stats.Stat
 import com.unciv.models.ruleset.nation.Personality
-import com.unciv.models.ruleset.Construction
+import com.unciv.models.ruleset.unit.UnitType
+import com.unciv.models.ruleset.building.Building
 
 object ValueCalculator {
 
     /**
      * Calculates the perceived value of a construction (building or unit) based on the AI's personality.
      */
-    fun calculatePerceivedConstructionValue(construction: Construction, city: City, personality: Personality): Int {
-        val baseValue = construction.getStatBuyCost(city, Stat.Gold) ?: return 0
+    fun calculatePerceivedConstructionValue(construction: Any, city: City, personality: Personality): Int {
+        val baseValue = when (construction) {
+            is Building -> construction.getStatBuyCost(city, Stat.Gold) ?: return 0
+            is UnitType -> construction.getStatBuyCost(city, Stat.Gold) ?: return 0
+            else -> return 0
+        }
         return when (construction.getStat()) {
             Stat.Science -> calculatePerceivedValueLinear(baseValue, personality.science)
             Stat.Production -> calculatePerceivedValueLinear(baseValue, personality.production)
@@ -27,7 +32,7 @@ object ValueCalculator {
     /**
      * Calculates the perceived value of a tile based on its yields and the AI's personality.
      */
-    fun calculatePerceivedTileValue(tile: Tile, personality: Personality): Int {
+    fun calculatePerceivedTileValue(tile: TileInfo, personality: Personality): Int {
         val yields = tile.getBaseTileInfo().yields
         return calculatePerceivedValueLinear(yields.food, personality.food) +
                calculatePerceivedValueLinear(yields.production, personality.production) +
@@ -41,8 +46,8 @@ object ValueCalculator {
     /**
      * Calculates the perceived value of a tile with a specific improvement.
      */
-    fun calculatePerceivedValueWithImprovement(
-        tile: Tile,
+    fun calculatePerceivedImprovedTileValue(
+        tile: TileInfo,
         improvement: TileImprovement,
         personality: Personality
     ): Int {
@@ -51,6 +56,8 @@ object ValueCalculator {
                                calculatePerceivedValueLinear(yields.production, personality.production) +
                                calculatePerceivedValueLinear(yields.gold, personality.gold) +
                                calculatePerceivedValueLinear(yields.science, personality.science) +
+                               calculatePerceivedValueLinear(yields.culture, personality.culture) +
+                               calculatePerceivedValueLinear(yields.faith, personality.faith) +
                                calculatePerceivedValueLinear(yields.culture, personality.culture) +
                                calculatePerceivedValueLinear(yields.faith, personality.faith) +
                                calculatePerceivedValueLinear(yields.happiness, personality.happiness)
