@@ -45,7 +45,7 @@ object UseGoldAutomation {
         }
 
         // Upgrade military units if the civilization has a militaristic personality
-        val unitsCopy = civddd.units.getCivUnits().toList()
+        val unitsCopy = civ.units.getCivUnits().toList()
         for (unit in unitsCopy) {
             if (personality.military > 5)
                 UnitEnhancements.tryUpgradeUnit(unit)
