@@ -1,7 +1,6 @@
 package com.unciv.logic.automation.civilization.purchases.decision
 
 import com.unciv.logic.civilization.Civilization
-import com.unciv.models.ruleset.nation.Personality
 import com.unciv.models.ruleset.Victory
 
 object PurchaseDecider {
@@ -24,12 +23,12 @@ object PurchaseDecider {
     /**
      * Adjusts the perceived value based on the civilization's victory focus.
      */
-    fun adjustForVictoryFocus(value: Int, focus: Victory.Focus, personality: Personality): Int {
+    fun adjustForVictoryFocus(value: Int, focus: Victory.Focus): Int {
         return when (focus) {
             Victory.Focus.Military -> (value * 1.2).toInt()
             Victory.Focus.Culture -> (value * 1.1).toInt()
             Victory.Focus.Science -> (value * 1.3).toInt()
-            Victory.Focus.Balanced -> value
+            Victory.Focus.CityStates -> value
             else -> value
         }
     }

@@ -26,7 +26,7 @@ object UseGoldAutomation {
         for (city in civ.cities.sortedByDescending {
             // Sort cities by the number of turns left to complete the current construction
             it.cityConstructions.turnsToConstruction(it.cityConstructions.currentConstructionFromQueue)
-        }) {
+        }) { 
             val construction = city.cityConstructions.getCurrentConstruction() ?: continue
             if (construction !is INonPerpetualConstruction) continue
             // Get the gold cost to buy the construction immediately
@@ -45,7 +45,7 @@ object UseGoldAutomation {
         }
 
         // Upgrade military units if the civilization has a militaristic personality
-        val unitsCopy = civ.units.getCivUnits().toList()
+        val unitsCopy = civddd.units.getCivUnits().toList()
         for (unit in unitsCopy) {
             if (personality.military > 5)
                 UnitEnhancements.tryUpgradeUnit(unit)
