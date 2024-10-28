@@ -1,7 +1,7 @@
 package com.unciv.logic.automation.civilization.purchases.unit
 
 import com.unciv.logic.automation.unit.UnitAutomation
-import com.unciv.models.unit.Unit
+import com.unciv.models.ruleset.unit.Unit
 
 object UnitEnhancements {
 

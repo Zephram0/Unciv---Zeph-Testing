@@ -1,8 +1,8 @@
 package com.unciv.logic.automation.civilization.purchases.influence
 
 import com.unciv.logic.civilization.Civilization
-import com.unciv.logic.civilization.Personality
-import com.unciv.logic.stats.Stat
+import com.unciv.models.ruleset.nation.Personality
+import com.unciv.models.stats.Stat
 import com.unciv.models.ruleset.Victory
 
 object InfluenceEvaluator {

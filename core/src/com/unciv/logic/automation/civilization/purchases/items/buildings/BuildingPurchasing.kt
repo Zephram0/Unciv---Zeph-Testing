@@ -3,7 +3,7 @@ package com.unciv.logic.automation.civilization.purchases.items.buildings
 import com.unciv.logic.automation.civilization.purchases.decision.IPurchasingStrategy
 import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
 import com.unciv.logic.civilization.Civilization
-import com.unciv.logic.civilization.Personality
+import com.unciv.models.ruleset.nation.Personality
 
 object BuildingPurchasing : IPurchasingStrategy {
 

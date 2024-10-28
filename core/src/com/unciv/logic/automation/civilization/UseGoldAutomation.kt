@@ -1,9 +1,9 @@
 package com.unciv.logic.automation.civilization.purchases
 
-import com.unciv.logic.stats.Stat
-import com.unciv.logic.civilization.Personality
-import com.unciv.logic.construction.Construction
-import com.unciv.logic.unit.Unit
+import com.unciv.models.stats.Stat
+import com.unciv.models.ruleset.nation.Personality
+import com.unciv.models.ruleset.Construction
+import com.unciv.models.ruleset.unit.Unit
 import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
 import com.unciv.logic.automation.civilization.purchases.influence.CityStateRelations
 import com.unciv.logic.automation.civilization.purchases.items.buildings.BuildingPurchasing

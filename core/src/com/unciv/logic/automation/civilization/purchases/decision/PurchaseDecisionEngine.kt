@@ -6,9 +6,9 @@ import com.unciv.logic.map.tile.Tile
 import com.unciv.models.ruleset.INonPerpetualConstruction
 import com.unciv.models.ruleset.tile.TileImprovement
 import com.unciv.models.ruleset.Victory
-import com.unciv.logic.construction.Construction
-import com.unciv.logic.civilization.Personality
-import com.unciv.logic.stats.Stat
+import com.unciv.models.ruleset.Construction
+import com.unciv.models.ruleset.nation.Personality
+import com.unciv.models.stats.Stat
 import com.unciv.logic.automation.civilization.purchases.ValueCalculator
 import com.unciv.logic.automation.civilization.purchases.PurchaseDecider
 

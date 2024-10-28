@@ -2,7 +2,7 @@ package com.unciv.logic.automation.civilization.purchases.influence
 
 import com.unciv.logic.automation.civilization.purchases.decision.IPurchasingStrategy
 import com.unciv.logic.civilization.Civilization
-import com.unciv.logic.civilization.Personality
+import com.unciv.models.ruleset.nation.Personality
 
 object CityStateRelations : IPurchasingStrategy {
 

@@ -3,9 +3,9 @@ package com.unciv.logic.automation.civilization.purchases.decision
 import com.unciv.logic.city.City
 import com.unciv.logic.map.tile.Tile
 import com.unciv.models.ruleset.tile.TileImprovement
-import com.unciv.logic.stats.Stat
-import com.unciv.logic.civilization.Personality
-import com.unciv.logic.construction.Construction
+import com.unciv.models.stats.Stat
+import com.unciv.models.ruleset.nation.Personality
+import com.unciv.models.ruleset.Construction
 
 object ValueCalculator {
 

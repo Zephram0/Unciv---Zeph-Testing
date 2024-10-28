@@ -3,7 +3,8 @@ package com.unciv.logic.automation.civilization.purchases.items.units
 import com.unciv.logic.automation.civilization.purchases.decision.IPurchasingStrategy
 import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
 import com.unciv.logic.civilization.Civilization
-import com.unciv.logic.civilization.Personality
+import com.unciv.models.ruleset.nation.Personality
+
 object UnitPurchasing : IPurchasingStrategy {
 
     override fun execute(civ: Civilization, personality: Personality) {
