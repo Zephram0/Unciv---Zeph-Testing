@@ -4,7 +4,7 @@ import com.unciv.logic.automation.civilization.purchases.decision.IPurchasingStr
 import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
 import com.unciv.logic.civilization.Civilization
 import com.unciv.logic.city.City
-import com.unciv.logic.map.BFS
+import com.unciv.logic.map.BFSx
 import com.unciv.logic.map.tile.Tile
 import com.unciv.models.ruleset.tile.ResourceType
 import com.unciv.models.ruleset.nation.Personality

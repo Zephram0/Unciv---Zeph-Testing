@@ -1,10 +1,8 @@
-
 import com.unciv.build.BuildConfig.coroutinesVersion
 import com.unciv.build.BuildConfig.gdxVersion
 import com.unciv.build.BuildConfig.kotlinVersion
 import com.unciv.build.BuildConfig.ktorVersion
 import com.unciv.build.BuildConfig.appVersion
-
 
 buildscript {
     repositories {
@@ -87,7 +85,6 @@ project(":server") {
         "implementation"("ch.qos.logback:logback-classic:1.2.5")
         "implementation"("com.github.ajalt.clikt:clikt:3.4.0")
     }
-
 }
 
 if (System.getenv("ANDROID_HOME") != null) {
@@ -111,7 +108,6 @@ if (System.getenv("ANDROID_HOME") != null) {
     }
 }
 
-
 project(":core") {
     apply(plugin = "kotlin")
     // Serialization features (especially JSON)
@@ -130,26 +126,32 @@ project(":core") {
         "implementation"("io.ktor:ktor-client-content-negotiation:$ktorVersion")
         // JSON serialization and de-serialization
         "implementation"("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+
+        // Additional dependencies based on errors
+        "implementation"("com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion")
+        "implementation"("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
+        "implementation"("com.github.MinnDevelopment:java-discord-rpc:v2.0.1")
+        "implementation"("net.java.dev.jna:jna:5.11.0")
+        "implementation"("net.java.dev.jna:jna-platform:5.11.0")
     }
+}
 
+// Taken from https://github.com/TomGrill/gdx-testing
+project(":tests") {
+    apply(plugin = "java")
+    apply(plugin = "kotlin")
 
-    // Taken from https://github.com/TomGrill/gdx-testing
-    project(":tests") {
-        apply(plugin = "java")
-        apply(plugin = "kotlin")
+    dependencies {
+        "implementation"(project(":core"))
 
-        dependencies {
-            "implementation"(project(":core"))
+        "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
 
-            "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+        "implementation"("junit:junit:4.13.2")
+        "implementation"("org.mockito:mockito-core:5.13.0")
 
-            "implementation"("junit:junit:4.13.2")
-            "implementation"("org.mockito:mockito-core:5.13.0")
-
-            "implementation"("com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion")
-            "implementation"("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
-            "implementation"("com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion")
-            "implementation"("com.badlogicgames.gdx:gdx:$gdxVersion")
-        }
+        "implementation"("com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion")
+        "implementation"("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
+        "implementation"("com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion")
+        "implementation"("com.badlogicgames.gdx:gdx:$gdxVersion")
     }
 }
