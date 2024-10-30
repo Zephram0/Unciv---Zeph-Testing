@@ -64,7 +64,7 @@ object TilePurchasing : IPurchasingStrategy {
                 .thenBy { it.hashCode() }
         )
 
-        for (city in civInfo.cities.filter { !it.isPuppet() && !it.isBeingRazed() }) {
+        for (city in civInfo.cities.filter { !it.isPuppet && !it.isBeingRazed }) {
             val highlyDesirableTilesInCity = city.tilesInRange.filter {
                 TileEvaluator.isHighlyDesirableTile(it, civInfo, city)
             }

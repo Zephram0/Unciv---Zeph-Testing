@@ -6,6 +6,8 @@ import com.unciv.models.ruleset.unit.UnitType
 import com.unciv.models.stats.Stat
 import com.unciv.models.ruleset.nation.Personality
 import com.unciv.models.stats.Stats
+import com.unciv.logic.map.tile.Tile
+import com.unciv.models.ruleset.tile.TileImprovement
 
 object ValueCalculator {
 
@@ -50,5 +52,34 @@ object ValueCalculator {
      */
     fun calculatePerceivedValueLinear(rawValue: Int, personalityValue: Int): Int {
         return rawValue * personalityValue
+    }
+
+    /**
+     * Calculates the perceived value of a tile based on its yields and the AI's personality.
+     */
+    fun calculatePerceivedTileValue(tile: Tile, personality: Personality): Int {
+        // Example implementation
+        var value = 0
+        value += tile.yields.science * personality.science
+        value += tile.yields.production * personality.production
+        value += tile.yields.culture * personality.culture
+        value += tile.yields.faith * personality.faith
+        value += tile.yields.happiness * personality.happiness
+        return value
+    }
+
+    /**
+     * Calculates the perceived value of a tile with a specific improvement based on the AI's personality.
+     */
+    fun calculatePerceivedValueWithImprovement(tile: Tile, improvement: TileImprovement, personality: Personality): Int {
+        // Example implementation
+        val baseValue = calculatePerceivedTileValue(tile, personality)
+        val improvementValue = when (improvement.type) {
+            // Define how different improvements affect the value
+            "Farm" -> 10 * personality.production
+            "Mine" -> 15 * personality.science
+            else -> 5
+        }
+        return baseValue + improvementValue
     }
 }

@@ -11,6 +11,7 @@ import com.unciv.logic.automation.civilization.purchases.items.units.UnitPurchas
 import com.unciv.logic.automation.civilization.purchases.tiles.TilePurchasing
 import com.unciv.logic.automation.civilization.purchases.unit.UnitEnhancements
 import com.unciv.logic.civilization.Civilization
+import com.unciv.models.ruleset.Victory.Focus
 
 object UseGoldAutomation {
 
@@ -21,6 +22,9 @@ object UseGoldAutomation {
     fun useGold(civ: Civilization) {
         // Get the personality traits of the civilization
         val personality = civ.getPersonality()
+
+        // Ensure Civilization has victoryFocus property
+        // civ.victoryFocus should be defined in the Civilization class
 
         // Purchase buildings in cities, prioritizing those with longer construction times
         for (city in civ.cities.sortedByDescending {

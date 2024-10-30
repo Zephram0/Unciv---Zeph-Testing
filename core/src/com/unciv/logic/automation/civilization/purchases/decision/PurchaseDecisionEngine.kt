@@ -9,8 +9,8 @@ import com.unciv.models.ruleset.Victory
 import com.unciv.models.ruleset.Construction
 import com.unciv.models.ruleset.nation.Personality
 import com.unciv.models.stats.Stat
-import com.unciv.logic.automation.civilization.purchases.ValueCalculator
-import com.unciv.logic.automation.civilization.purchases.PurchaseDecider
+import com.unciv.logic.automation.civilization.purchases.decision.ValueCalculator
+import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecider
 
 object PurchaseDecisionEngine {
 
@@ -47,7 +47,7 @@ object PurchaseDecisionEngine {
      */
     fun shouldBuyTile(tile: Tile, city: City, personality: Personality, civInfo: Civilization): Boolean {
         val perceivedValue = calculatePerceivedTileValue(tile, personality)
-        val adjustedValue = adjustForVictoryFocus(perceivedValue, civInfo.victoryFocus, personality)
+        val adjustedValue = adjustForVictoryFocus(perceivedValue, civInfo.victoryFocus)
         return shouldPurchase(adjustedValue, city.expansion.getGoldCostOfTile(tile), civInfo.gold)
     }
 
