@@ -4,12 +4,13 @@ import com.unciv.logic.automation.civilization.purchases.decision.IPurchasingStr
 import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
 import com.unciv.logic.civilization.Civilization
 import com.unciv.logic.city.City
-import com.unciv.logic.map.BFSx
+import com.unciv.logic.map.BFS
 import com.unciv.logic.map.tile.Tile
 import com.unciv.models.ruleset.tile.ResourceType
 import com.unciv.models.ruleset.nation.Personality
 import java.util.SortedMap
 import java.util.TreeMap
+import com.unciv.logic.automation.civilization.purchases.tiles.TileEvaluator // Updated import
 
 object TilePurchasing : IPurchasingStrategy {
 
@@ -32,11 +33,11 @@ object TilePurchasing : IPurchasingStrategy {
             } ?: continue
 
             val bfs = BFS(cityWithLeastCostToBuy.getCenterTile()) {
-                it.getOwner() == null || it.owningCity == cityWithLeastCostToBuy
+                it.owner == null || it.owningCity == cityWithLeastCostToBuy
             }
             bfs.stepUntilDestination(tile)
             val tilesThatNeedBuying = bfs.getPathTo(tile).filter {
-                it.getOwner() == null && PurchaseDecisionEngine.shouldBuyTile(it, cityWithLeastCostToBuy, personality, civInfo)
+                it.owner == null && PurchaseDecisionEngine.shouldBuyTile(it, cityWithLeastCostToBuy, personality, civInfo)
             }.toList().reversed()
 
             for (tileThatNeedsBuying in tilesThatNeedBuying) {

@@ -47,7 +47,7 @@ object PurchaseDecisionEngine {
      */
     fun shouldBuyTile(tile: Tile, city: City, personality: Personality, civInfo: Civilization): Boolean {
         val perceivedValue = calculatePerceivedTileValue(tile, personality)
-        val adjustedValue = adjustForVictoryFocus(perceivedValue, civInfo.victoryFocus)
+        val adjustedValue = adjustForVictoryFocus(perceivedValue, civInfo.victoryFocus, personality)
         return shouldPurchase(adjustedValue, city.expansion.getGoldCostOfTile(tile), civInfo.gold)
     }
 

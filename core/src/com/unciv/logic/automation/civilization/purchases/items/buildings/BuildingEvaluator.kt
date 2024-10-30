@@ -3,6 +3,7 @@ package com.unciv.logic.automation.civilization.purchases.items.buildings
 import com.unciv.logic.city.City
 import com.unciv.models.ruleset.building.Building
 import com.unciv.models.ruleset.nation.Personality
+import com.unciv.models.stats.Stat
 
 object BuildingEvaluator {
 
@@ -16,7 +17,12 @@ object BuildingEvaluator {
     fun determineBuildingToPurchase(city: City, personality: Personality): Building? {
         // Get available buildings that can be purchased
         val availableBuildings = city.getAvailableBuildingsToConstruct().filter {
-            city.cityConstructions.isConstructionPurchaseAllowed(it, com.unciv.models.ruleset.Stat.Gold)
+            city.cityConstructions.isConstructionPurchaseAllowed(it, Stat.Gold)
+        }
+
+        availableBuildings.forEach {
+            val constructionBuyCost: Int = it.getStatBuyCost(city, Stat.Gold) ?: return@forEach
+            // ...existing code...
         }
 
         // Evaluate each building and sort by perceived value

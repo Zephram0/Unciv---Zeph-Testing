@@ -23,7 +23,7 @@ object CityStateRelations : IPurchasingStrategy {
                 val goldToSpend = InfluenceEvaluator.determineGoldToSpend(civ, cityState)
                 if (goldToSpend > 0 && civ.gold >= goldToSpend) {
                     cityState.cityStateFunctions.receiveGoldGift(civ, goldToSpend)
-                    civ.gold -= goldToSpend
+                    civ.adjustGold(-goldToSpend) // Use a method to adjust gold instead of direct assignment
                 }
             }
         }

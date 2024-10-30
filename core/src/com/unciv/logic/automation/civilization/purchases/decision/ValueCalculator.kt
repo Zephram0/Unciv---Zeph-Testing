@@ -58,13 +58,12 @@ object ValueCalculator {
      * Calculates the perceived value of a tile based on its yields and the AI's personality.
      */
     fun calculatePerceivedTileValue(tile: Tile, personality: Personality): Int {
-        // Example implementation
         var value = 0
-        value += tile.yields.science * personality.science
-        value += tile.yields.production * personality.production
-        value += tile.yields.culture * personality.culture
-        value += tile.yields.faith * personality.faith
-        value += tile.yields.happiness * personality.happiness
+        value += (tile.yields.science * personality.science).toInt()
+        value += (tile.yields.production * personality.production).toInt()
+        value += (tile.yields.culture * personality.culture).toInt()
+        value += (tile.yields.faith * personality.faith).toInt()
+        value += (tile.yields.happiness * personality.happiness).toInt()
         return value
     }
 

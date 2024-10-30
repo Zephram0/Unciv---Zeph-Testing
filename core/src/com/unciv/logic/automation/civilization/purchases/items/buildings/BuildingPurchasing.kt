@@ -4,6 +4,7 @@ import com.unciv.logic.automation.civilization.purchases.decision.IPurchasingStr
 import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
 import com.unciv.logic.civilization.Civilization
 import com.unciv.models.ruleset.nation.Personality
+import com.unciv.models.ruleset.Stat
 
 object BuildingPurchasing : IPurchasingStrategy {
 
@@ -18,12 +19,12 @@ object BuildingPurchasing : IPurchasingStrategy {
         for (city in civ.cities) {
             val buildingToPurchase = BuildingEvaluator.determineBuildingToPurchase(city, personality)
             if (buildingToPurchase != null) {
-                val goldCost = buildingToPurchase.getStatBuyCost(city, com.unciv.models.ruleset.Stat.Gold) ?: continue
+                val goldCost = buildingToPurchase.getStatBuyCost(city, Stat.Gold) ?: continue
                 if (civ.gold >= goldCost) {
                     val perceivedValue = PurchaseDecisionEngine.calculatePerceivedConstructionValue(buildingToPurchase, city, personality)
                     if (PurchaseDecisionEngine.shouldPurchase(perceivedValue, goldCost, civ.gold)) {
                         city.cityConstructions.purchaseBuilding(buildingToPurchase)
-                        civ.gold -= goldCost
+                        civ.adjustGold(-goldCost)
                     }
                 }
             }
