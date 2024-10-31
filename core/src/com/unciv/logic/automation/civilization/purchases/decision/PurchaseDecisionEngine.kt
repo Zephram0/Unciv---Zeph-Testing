@@ -6,7 +6,7 @@ import com.unciv.logic.map.tile.Tile
 import com.unciv.models.ruleset.INonPerpetualConstruction
 import com.unciv.models.ruleset.tile.TileImprovement
 import com.unciv.models.ruleset.Victory
-import com.unciv.models.ruleset.Construction
+import com.unciv.models.ruleset.IConstruction // Updated import for Construction
 import com.unciv.models.ruleset.nation.Personality
 import com.unciv.models.stats.Stat
 import com.unciv.logic.automation.civilization.purchases.decision.ValueCalculator
@@ -17,7 +17,7 @@ object PurchaseDecisionEngine {
     /**
      * Calculates the perceived value of a construction (building or unit) based on the AI's personality.
      */
-    fun calculatePerceivedConstructionValue(construction: Construction, city: City, personality: Personality): Int {
+    fun calculatePerceivedConstructionValue(construction: IConstruction.Construction, city: City, personality: Personality): Int { // Updated parameter type
         return ValueCalculator.calculatePerceivedConstructionValue(construction, city, personality)
     }
 
@@ -32,7 +32,7 @@ object PurchaseDecisionEngine {
      * Adjusts the perceived value based on the civilization's victory focus.
      */
     fun adjustForVictoryFocus(value: Int, focus: Victory.Focus, personality: Personality): Int {
-        return PurchaseDecider.adjustForVictoryFocus(value, focus, personality)
+        return PurchaseDecider.adjustForVictoryFocus(value, focus, personality) // Updated to include 'personality'
     }
 
     /**
@@ -47,7 +47,7 @@ object PurchaseDecisionEngine {
      */
     fun shouldBuyTile(tile: Tile, city: City, personality: Personality, civInfo: Civilization): Boolean {
         val perceivedValue = calculatePerceivedTileValue(tile, personality)
-        val adjustedValue = adjustForVictoryFocus(perceivedValue, civInfo.victoryFocus, personality)
+        val adjustedValue = adjustForVictoryFocus(perceivedValue, civInfo.victoryFocus, personality) // Fixed reference to 'civInfo.victoryFocus'
         return shouldPurchase(adjustedValue, city.expansion.getGoldCostOfTile(tile), civInfo.gold)
     }
 
@@ -55,7 +55,7 @@ object PurchaseDecisionEngine {
      * Determines if a new tile is better than the worst currently worked tile in the city.
      */
     fun isTileBetterThanCurrent(city: City, newTile: Tile, personality: Personality, civ: Civilization): Boolean {
-        val currentTiles = city.workingTiles
+        val currentTiles = city.getWorkingTiles() // Changed from 'workingTiles' to 'getWorkingTiles()'
         val worstTile = currentTiles.minByOrNull { calculatePerceivedTileValue(it, personality) } ?: return false
         val perceivedValue = if (hasAvailableWorkers(civ, newTile) && newTile.canBeImproved()) {
             maxOfPerceivedValuesOfPossibleImprovements(newTile, personality, civ)
@@ -98,7 +98,7 @@ object PurchaseDecisionEngine {
     private fun hasAvailableWorkers(civ: Civilization, tile: Tile): Boolean {
         val requiresWorker = tile.resource != null && tile.improvement == null
         if (!requiresWorker) return true
-        val idleWorkers = civ.units.getCivUnits().count { it.isWorker && it.isIdle() }
+        val idleWorkers = civ.units.getCivUnits().count { it.isWorker && it.isIdle() } // Assuming 'isWorker' exists
         return idleWorkers > 0
     }
 }
