@@ -1,69 +1,118 @@
 package com.unciv.logic.automation.civilization
 
-import com.unciv.models.stats.Stat
-import com.unciv.models.ruleset.nation.Personality
-import com.unciv.models.ruleset.INonPerpetualConstruction
-import com.unciv.logic.automation.civilization.purchases.decision.PurchaseDecisionEngine
-import com.unciv.logic.map.mapunit.MapUnit
-import com.unciv.logic.automation.civilization.purchases.influence.CityStateRelations
-import com.unciv.logic.automation.civilization.purchases.items.buildings.BuildingPurchasing
-import com.unciv.logic.automation.civilization.purchases.items.units.UnitPurchasing
-import com.unciv.logic.automation.civilization.purchases.tiles.TilePurchasing
-import com.unciv.logic.automation.civilization.purchases.unit.UnitEnhancements
+import com.unciv.logic.automation.civilization.purchases.core.PurchaseOption
+import com.unciv.logic.automation.civilization.purchases.core.PurchaseOption.PurchaseType
+import com.unciv.logic.automation.civilization.purchases.core.IPurchasingStrategy
 import com.unciv.logic.civilization.Civilization
-import com.unciv.models.ruleset.Victory.Focus
+import com.unciv.models.ruleset.nation.Personality
+import com.unciv.logic.automation.civilization.purchases.strategies.BuildingStrategy
+import com.unciv.logic.automation.civilization.purchases.strategies.UnitStrategy
+import com.unciv.logic.automation.civilization.purchases.strategies.TileStrategy
+import com.unciv.logic.automation.civilization.purchases.strategies.CityStateStrategy
+import com.unciv.models.ruleset.Victory
 
 object UseGoldAutomation {
-
     /**
-     * Allows the AI to spend gold on purchasing buildings, units, upgrading units,
-     * influencing city-states, and buying city tiles, based on its personality and current state.
+     * Orchestrates the AI's gold spending across different purchasing strategies based on personality and victory focus.
      */
     fun useGold(civ: Civilization) {
-        // Get the personality traits of the civilization
+        if (civ.gold <= 0) return
+
         val personality = civ.getPersonality()
 
-        // Ensure Civilization has victoryFocus property
-        // civ.victoryFocus should be defined in the Civilization class
+        // Initialize purchasing strategies
+        val purchasingStrategies = listOf<IPurchasingStrategy>(
+            BuildingStrategy,
+            UnitStrategy,
+            TileStrategy,
+            CityStateStrategy
+        )
 
-        // Purchase buildings in cities, prioritizing those with longer construction times
-        for (city in civ.cities.sortedByDescending {
-            // Sort cities by the number of turns left to complete the current construction
-            it.cityConstructions.turnsToConstruction(it.cityConstructions.currentConstructionFromQueue)
-        }) { 
-            val construction = city.cityConstructions.getCurrentConstruction() ?: continue
-            if (construction !is INonPerpetualConstruction) continue
-            // Get the gold cost to buy the construction immediately
-            val statBuyCost = construction.getStatBuyCost(city, Stat.Gold) ?: continue
-            // Check if the construction can be purchased with gold
-            if (!city.cityConstructions.isConstructionPurchaseAllowed(construction, Stat.Gold, statBuyCost)) continue
-            if (civ.gold < statBuyCost / 1.1) continue
+        // Collect all possible purchases from each strategy
+        val allPurchaseOptions = purchasingStrategies.flatMap { strategy ->
+            strategy.evaluatePurchases(civ, personality)
+        }
 
-            // Calculate the perceived value of the construction based on the AI's personality
-            val perceivedValue = PurchaseDecisionEngine.calculatePerceivedConstructionValue(construction, city, personality)
-            // Decide whether to purchase the construction based on its perceived value and cost
-            if (PurchaseDecisionEngine.shouldPurchase(perceivedValue, statBuyCost, civ.gold)) {
-                // Purchase the construction
-                city.cityConstructions.purchaseConstruction(construction, 0, true)
+        // Select and execute the best purchase
+        selectBestPurchase(allPurchaseOptions, civ, personality)?.let { selectedOption ->
+            try {
+                selectedOption.action.invoke()
+            } catch (e: Exception) {
+                println("Failed to execute purchase: ${selectedOption.description}")
+            }
+        }
+    }
+
+    /**
+     * Selects the best purchase option based on final scores.
+     */
+    private fun selectBestPurchase(
+        options: List<PurchaseOption>,
+        civ: Civilization,
+        personality: Personality
+    ): PurchaseOption? {
+        return options
+            .filter { meetsGoldThreshold(it, civ) }
+            .maxByOrNull { 
+                calculateFinalScore(it, civ, personality)
+            }
+    }
+
+    /**
+     * Calculates the final score for a purchase option by applying personality, victory focus, and situational modifiers.
+     */
+    private fun calculateFinalScore(
+        option: PurchaseOption,
+        civ: Civilization,
+        personality: Personality
+    ): Float {
+        val baseScore = option.baseValue / option.cost
+
+        // Apply personality modifiers
+        val personalityMultiplier = when (option.type) {
+            PurchaseType.Construction -> when {
+                civ.wantsToFocusOn(Victory.Focus.Science) -> 1.2f
+                civ.wantsToFocusOn(Victory.Focus.Culture) -> 1.1f
+                else -> 1f
+            }
+            PurchaseType.UnitUpgrade -> when {
+                civ.wantsToFocusOn(Victory.Focus.Military) -> 1.3f
+                personality.military > 6 -> 1.2f
+                personality.military > 4 -> 1.1f
+                else -> 0.9f
+            }
+            PurchaseType.CityState -> when {
+                civ.wantsToFocusOn(Victory.Focus.CityStates) -> 1.4f
+                personality.diplomatic > 6 -> 1.2f
+                else -> 1f
+            }
+            PurchaseType.Tile -> when {
+                civ.wantsToFocusOn(Victory.Focus.Culture) -> 1.3f
+                personality.expansion > 6 -> 1.2f
+                personality.expansion > 4 -> 1.1f
+                else -> 1f
             }
         }
 
-        // Upgrade military units if the civilization has a militaristic personality
-        val unitsCopy = civ.units.getCivUnits().toList()
-        for (unit in unitsCopy) {
-            if (personality.military > 5)
-                UnitEnhancements.tryUpgradeUnit(unit)
+        // Apply situational modifiers
+        val situationalMultiplier = when {
+            civ.isAtWar() && (option.type == PurchaseType.UnitUpgrade || option.type == PurchaseType.Construction) -> 1.3f
+            civ.gold < 0 && option.type == PurchaseType.Construction -> 0.7f  // Be more conservative when losing money
+            else -> 1f
         }
 
-        // Spend gold on influencing city-states if the civilization is a major civ
-        if (civ.isMajorCiv())
-            CityStateRelations.useGoldForCityStates(civ, personality)
+        return baseScore * personalityMultiplier * situationalMultiplier
+    }
 
-        // Purchase city tiles based on the civilization's personality
-        TilePurchasing.execute(civ, personality)
-
-        // Spend on city items like buildings or units
-        BuildingPurchasing.execute(civ, personality)
-        UnitPurchasing.execute(civ, personality)
+    /**
+     * Determines if the purchase meets the gold threshold based on current civilization state.
+     */
+    private fun meetsGoldThreshold(option: PurchaseOption, civ: Civilization): Boolean {
+        val minimumReserve = when {
+            civ.isAtWar() -> 100
+            civ.gold < 0 -> 500  // Save more when losing money
+            else -> 250
+        }
+        return option.cost <= (civ.gold - minimumReserve)
     }
 }

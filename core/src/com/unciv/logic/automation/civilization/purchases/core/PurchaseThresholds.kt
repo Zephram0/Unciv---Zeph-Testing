@@ -1,9 +1,10 @@
-package com.unciv.logic.automation.civilization.purchases.decision
+package com.unciv.logic.automation.civilization.purchases.core
 
 import com.unciv.logic.civilization.Civilization
 import com.unciv.models.ruleset.Victory
+import com.unciv.models.ruleset.nation.Personality
 
-object PurchaseDecider {
+object PurchaseThresholds {
 
     /**
      * Determines a dynamic threshold for making purchase decisions based on the perceived value.
@@ -23,7 +24,7 @@ object PurchaseDecider {
     /**
      * Adjusts the perceived value based on the civilization's victory focus.
      */
-    fun adjustForVictoryFocus(value: Int, focus: Victory.Focus): Int {
+    fun adjustForVictoryFocus(value: Int, focus: Victory.Focus, personality: Personality): Int {
         return when (focus) {
             Victory.Focus.Military -> (value * 1.2).toInt()
             Victory.Focus.Culture -> (value * 1.1).toInt()
@@ -32,4 +33,6 @@ object PurchaseDecider {
             else -> value
         }
     }
+
+    // Additional threshold-related functions can be added here
 }

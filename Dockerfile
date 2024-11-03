@@ -1,3 +1,4 @@
+
 ARG ARG_COMPILE_BASE_IMAGE=accetto/ubuntu-vnc-xfce-opengl-g3
 
 FROM $ARG_COMPILE_BASE_IMAGE as build
