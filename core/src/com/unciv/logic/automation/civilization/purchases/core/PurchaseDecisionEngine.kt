@@ -65,7 +65,7 @@ object PurchaseDecisionEngine {
         // Base value from yields
         tile.stats.stats.values.forEach { value += (it * 10).toInt() }
         
-        // Resource value
+        // Resource value - can use tile.tileResource directly if resource exists
         if (tile.resource != null) {
             value += when (tile.tileResource.resourceType) {
                 ResourceType.Strategic -> 50
