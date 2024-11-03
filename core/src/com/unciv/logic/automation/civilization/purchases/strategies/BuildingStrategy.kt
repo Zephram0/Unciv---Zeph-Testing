@@ -9,7 +9,7 @@ import com.unciv.models.ruleset.nation.Personality
 
 object BuildingStrategy : IPurchasingStrategy {
 
-    override fun evaluatePurchases(civ: Civilization, personality: Personality): List<PurchaseOption> {
+    override fun evaluatePurchases(civ: Civilization, personality: Personality, victoryFocus: Victory.Focus): List<PurchaseOption> {
         val purchaseOptions = mutableListOf<PurchaseOption>()
 
         for (city in civ.cities) {
@@ -19,11 +19,7 @@ object BuildingStrategy : IPurchasingStrategy {
                 if (civ.gold < goldCost) continue
 
                 val perceivedValue = PurchaseDecisionEngine.calculatePerceivedConstructionValue(buildingToPurchase, city, personality)
-                val adjustedValue = when {
-                    civ.wantsToFocusOn(Victory.Focus.Science) -> (perceivedValue * 1.2).toInt()
-                    civ.wantsToFocusOn(Victory.Focus.Culture) -> (perceivedValue * 1.1).toInt()
-                    else -> perceivedValue
-                }
+                val adjustedValue = PurchaseDecisionEngine.adjustForVictoryFocus(perceivedValue, victoryFocus, personality)
 
                 if (PurchaseDecisionEngine.shouldPurchase(adjustedValue, goldCost, civ.gold)) {
                     purchaseOptions.add(
