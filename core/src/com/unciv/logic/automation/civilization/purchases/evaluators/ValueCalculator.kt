@@ -18,8 +18,10 @@ object ValueCalculator {
 
     fun calculatePerceivedTileValue(tile: Tile, personality: Personality): Int {
         var value = 0
-        tile.stats.forEach { stat, amount -> 
-            value += (amount * 10).toInt()
+        
+        // Calculate value from tile stats
+        for (stat in Stat.values()) {
+            value += (tile.stats.get(stat) * 10).toInt()
         }
         
         // Add strategic value for resources
@@ -39,8 +41,8 @@ object ValueCalculator {
         
         // Base stats value
         val stats = building.getStats(city)
-        stats.forEach { stat, amount ->
-            value += (amount * 10).toInt()
+        for (stat in Stat.values()) {
+            value += (stats.get(stat) * 10).toInt()
         }
         
         // Consider maintenance cost
@@ -54,7 +56,6 @@ object ValueCalculator {
     }
 
     private fun calculateDefaultConstructionValue(construction: IConstruction, city: City, personality: Personality): Int {
-        // Basic evaluation for non-Building constructions
         return 10  // Default minimum value
     }
-} 
+}

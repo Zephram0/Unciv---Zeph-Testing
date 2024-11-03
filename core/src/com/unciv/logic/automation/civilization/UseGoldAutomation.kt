@@ -83,7 +83,7 @@ object UseGoldAutomation {
             }
             PurchaseType.CityState -> when {
                 civ.wantsToFocusOn(Victory.Focus.CityStates) -> 1.4f
-                personality.diplomatic > 6 -> 1.2f
+                personality.diplomacy > 6 -> 1.2f
                 else -> 1f
             }
             PurchaseType.Tile -> when {
