@@ -174,7 +174,7 @@ object ConstructionStrategy : IPurchasingStrategy {
             return null
         }
     
-        if (!PurchaseDecisionEngine.shouldPurchase(perceivedValue, goldCost, civ.gold, city)) {
+        if (!PurchaseDecisionEngine.shouldPurchase(perceivedValue, goldCost, civ.gold, civ)) {
             println("${construction.name} rejected by PurchaseDecisionEngine: " +
                     "value $perceivedValue, cost $goldCost")
             return null

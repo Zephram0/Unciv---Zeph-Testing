@@ -45,7 +45,7 @@ object PurchaseDecisionEngine {
         return baseScore * personalityMultiplier
     }
 
-    fun shouldPurchase(perceivedValue: Int, goldCost: Int, goldAvailable: Int): Boolean {
+    fun shouldPurchase(perceivedValue: Int, goldCost: Int, goldAvailable: Int, civ: Civilization): Boolean {
         // Don't spend more than 80% of available gold
         if (goldCost > goldAvailable * 0.8f) return false
         
@@ -57,7 +57,7 @@ object PurchaseDecisionEngine {
         }
         
         // Adjust ratio based on gold income
-        val goldPerTurn = city.civ.stats.statsForNextTurn.gold
+        val goldPerTurn = civ.stats.statsForNextTurn.gold
         requiredRatio *= when {
             goldPerTurn < 0 -> 1.5f  // More conservative when losing money
             goldPerTurn > 20 -> 0.7f // Very liberal with high income

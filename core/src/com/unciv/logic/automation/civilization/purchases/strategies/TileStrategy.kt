@@ -59,7 +59,8 @@ object TileStrategy : IPurchasingStrategy {
                 if (!PurchaseDecisionEngine.shouldPurchase(
                     TileEvaluator.rankTile(tile, civ, personality),
                     pathCost,
-                    civ.gold
+                    civ.gold,
+                    civ
                 )) continue
 
                 // Check if tile would be worth working using PurchaseDecisionEngine

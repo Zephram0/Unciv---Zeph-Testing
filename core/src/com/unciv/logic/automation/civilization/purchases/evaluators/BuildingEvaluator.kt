@@ -74,8 +74,7 @@ object BuildingEvaluator {
         val localUniqueCache = LocalUniqueCache()
         
         // Calculate base value from building stats
-        val buildingStats = Stats()
-        building.addStats(buildingStats)
+        val buildingStats = building.getStats(city, localUniqueCache)
         
         // Calculate base value using personality-scaled stats
         value += (Automation.rankStatsValue(personality.scaleStats(buildingStats, 0.3f), city.civ) * 100).toInt()
@@ -96,7 +95,7 @@ object BuildingEvaluator {
                 Stat.Happiness -> {
                     // Significant boost when civilization is unhappy
                     if (city.civ.getHappiness() < 5)
-                        value += building.happiness * 50
+                        value += (building.happiness * 50).toInt()
                 }
                 Stat.Culture -> {
                     // Priority for culture when borders grow slowly

@@ -30,7 +30,7 @@ object CityStateStrategy : IPurchasingStrategy {
             if (perceivedValue <= 0) continue  // Skip if the alliance isn't valuable to us
             
             // Determine if purchase is warranted based on gold cost vs. perceived value
-            if (PurchaseDecisionEngine.shouldPurchase(perceivedValue, 500, civ.gold)) {
+            if (PurchaseDecisionEngine.shouldPurchase(perceivedValue, 500, civ.gold, civ)) {
                 purchaseOptions.add(
                     PurchaseOption(
                         type = PurchaseOption.PurchaseType.CityState,

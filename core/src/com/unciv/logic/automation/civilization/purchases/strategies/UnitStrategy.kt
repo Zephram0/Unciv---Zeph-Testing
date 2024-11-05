@@ -37,7 +37,7 @@ object UnitStrategy : IPurchasingStrategy {
             val warPreference = (personality[PersonalityValue.Aggressive] + personality[PersonalityValue.Military]) / 10f
             val perceivedValue = statsDifference * strategicMultiplier * (1f + warPreference)
 
-            if (PurchaseDecisionEngine.shouldPurchase(perceivedValue.toInt(), upgradeCost, civ.gold)) {
+            if (PurchaseDecisionEngine.shouldPurchase(perceivedValue.toInt(), upgradeCost, civ.gold, civ)) {
                 purchaseOptions.add(
                     PurchaseOption(
                         type = PurchaseOption.PurchaseType.UnitUpgrade,
