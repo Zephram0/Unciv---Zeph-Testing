@@ -151,25 +151,34 @@ object ConstructionStrategy : IPurchasingStrategy {
         civ: Civilization,
         personality: Personality
     ): PurchaseOption? {
-        if (!canBuildConstruction(construction, city, civ)) return null
+        if (!canBuildConstruction(construction, city, civ)) {
+            println("${construction.name} rejected: cannot build in ${city.name}")
+            return null
+        }
         
-        // Calculate perceived value using specific evaluators
         val perceivedValue = when (construction) {
             is Building -> BuildingEvaluator.calculateBuildingValue(construction, city, personality)
             is BaseUnit -> UnitEvaluator.calculateUnitValue(construction, city, personality)
-            else -> 10 // Default minimum value
+            else -> 10
         }
-
+        println("${construction.name} value calculated: $perceivedValue")
+    
         val goldCost = when (construction) {
             is Building -> construction.cost
             is BaseUnit -> construction.cost
             else -> 0
         }
-        if (goldCost > civ.gold) return null
-
-        // Use PurchaseDecisionEngine to determine if purchase is worthwhile
-        if (!PurchaseDecisionEngine.shouldPurchase(perceivedValue, goldCost, civ.gold)) 
+        
+        if (goldCost > civ.gold) {
+            println("${construction.name} rejected: cost $goldCost exceeds available gold ${civ.gold}")
             return null
+        }
+    
+        if (!PurchaseDecisionEngine.shouldPurchase(perceivedValue, goldCost, civ.gold, city)) {
+            println("${construction.name} rejected by PurchaseDecisionEngine: " +
+                    "value $perceivedValue, cost $goldCost")
+            return null
+        }
 
         return PurchaseOption(
             type = PurchaseOption.PurchaseType.Construction,

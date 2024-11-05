@@ -110,9 +110,14 @@ object UseGoldAutomation {
     private fun meetsGoldThreshold(option: PurchaseOption, civ: Civilization): Boolean {
         val minimumReserve = when {
             civ.isAtWar() -> 100
-            civ.gold < 0 -> 500  // Save more when losing money
-            else -> 250
+            civ.gold < 0 -> 500
+            else -> (civ.gold * 0.2f).coerceAtMost(250f).toInt() // More dynamic reserve
         }
-        return option.cost <= (civ.gold - minimumReserve)
+        val willPurchase = option.cost <= (civ.gold - minimumReserve)
+        if (!willPurchase) {
+            println("Rejected purchase of ${option.description}: cost ${option.cost}, " +
+                    "gold ${civ.gold}, minimum reserve $minimumReserve")
+        }
+        return willPurchase
     }
 }
