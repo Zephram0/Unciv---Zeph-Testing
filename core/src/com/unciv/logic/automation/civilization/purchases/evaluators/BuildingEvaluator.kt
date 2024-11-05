@@ -1,7 +1,7 @@
 package com.unciv.logic.automation.civilization.purchases.evaluators
 
 import com.unciv.logic.city.City
-import com.unciv.logic.automation.NextTurnAutomation
+import com.unciv.logic.automation.civilization.NextTurnAutomation
 import com.unciv.logic.city.CityConstructions
 import com.unciv.models.ruleset.Building
 import com.unciv.models.ruleset.IConstruction
@@ -14,16 +14,17 @@ import com.unciv.models.stats.Stats
 
 object BuildingEvaluator {
     fun determineBuildingToPurchase(city: City, personality: Personality): IConstruction? {
-        val availableBuildings = city.cityConstructions.getConstructableBuildings()
-            .filter { building -> canPurchaseBuilding(building, city) }
-        return availableBuildings.maxByOrNull { building -> calculateBuildingValue(building, city, personality) }
+        val availableBuildings = city.cityConstructions.getBuildableBuildings()
+            .filter { building: Building -> canPurchaseBuilding(building, city) }
+        return availableBuildings.maxByOrNull { building: Building -> calculateBuildingValue(building, city, personality) }
     }
 
     private fun canPurchaseBuilding(building: Building, city: City): Boolean {
         if (building.cost < 0) return false  // Can't be purchased
         if (building.isWonder || building.isNationalWonder) return false  // Wonders can't be purchased
-        if (!city.cityConstructions.isPurchasable(building)) return false  // Changed from canBePurchased
-        if (building.cost > city.civ.gold) return false
+        val constructionBuyCost = building.getStatBuyCost(city, Stat.Gold) ?: return false
+        if (!city.cityConstructions.isConstructionPurchaseAllowed(building, Stat.Gold, constructionBuyCost)) return false
+        if (constructionBuyCost > city.civ.gold) return false
         return true
     }
 
@@ -72,13 +73,13 @@ object BuildingEvaluator {
         // Consider maintenance cost
         value -= building.maintenance * 10
         
-        // Military value calculation similar to ConstructionAutomation
+        // Military value calculation
         if (city.civ.isAtWar()) {
             var warModifier = 1f
             // Check if city is a frontier city
             if (city.civ.getKnownCivs()
-                .mapNotNull { NextTurnAutomation.getClosestCities(city.civ, it) }
-                .any { it.city1 == city }) {
+                .mapNotNull { otherCiv -> NextTurnAutomation.getClosestCities(city.civ, otherCiv) }  // Added explicit parameter name
+                .any { cityDistance -> cityDistance.city1 == city }) {  // Added explicit parameter name
                 warModifier *= 2f
             }
             
