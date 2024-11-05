@@ -5,7 +5,7 @@ import com.unciv.logic.automation.civilization.purchases.core.PurchaseOption.Pur
 import com.unciv.logic.automation.civilization.purchases.core.IPurchasingStrategy
 import com.unciv.logic.civilization.Civilization
 import com.unciv.models.ruleset.nation.Personality
-import com.unciv.logic.automation.civilization.purchases.strategies.BuildingStrategy
+import com.unciv.logic.automation.civilization.purchases.strategies.ConstructionStrategy
 import com.unciv.logic.automation.civilization.purchases.strategies.UnitStrategy
 import com.unciv.logic.automation.civilization.purchases.strategies.TileStrategy
 import com.unciv.logic.automation.civilization.purchases.strategies.CityStateStrategy
@@ -22,7 +22,7 @@ object UseGoldAutomation {
 
         // Initialize purchasing strategies
         val purchasingStrategies = listOf<IPurchasingStrategy>(
-            BuildingStrategy,
+            ConstructionStrategy,
             UnitStrategy,
             TileStrategy,
             CityStateStrategy

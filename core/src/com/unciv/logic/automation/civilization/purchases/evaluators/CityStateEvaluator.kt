@@ -1,38 +1,34 @@
-package com.unciv.logic.automation.civilization.purchases.influence
+package com.unciv.logic.automation.civilization.purchases.evaluators
 
 import com.unciv.logic.civilization.Civilization
 import com.unciv.models.ruleset.nation.Personality
 import com.unciv.models.stats.Stat
 import com.unciv.models.ruleset.Victory
 
-object InfluenceEvaluator {
-
-    /**
-     * Determines whether the AI should invest in influencing a city-state.
-     *
-     * @param civ The civilization performing the influence.
-     * @param cityState The city-state under consideration.
-     * @param personality The AI personality influencing decision-making.
-     * @return True if the AI should invest in the city-state; otherwise, false.
-     */
+object CityStateEvaluator {
     fun shouldInvestInCityState(civ: Civilization, cityState: Civilization, personality: Personality): Boolean {
-        // Example logic: Invest if the city-state provides a stat that aligns with the victory focus
-        val victoryFocus = civ.victoryFocus
-        return when (victoryFocus) {
-            Victory.Focus.Culture -> cityState.cityStateFunctions.canProvideStat(Stat.Culture)
-            Victory.Focus.Science -> cityState.cityStateFunctions.canProvideStat(Stat.Science)
-            Victory.Focus.Military -> cityState.cityStateFunctions.canProvideStat(Stat.Military)
-            else -> false
-        }
+        return calculateCityStateValue(cityState, civ, personality) > 
+               determineGoldToSpend(civ, cityState)
     }
 
-    /**
-     * Determines the amount of gold to spend on influencing the city-state.
-     *
-     * @param civ The civilization performing the influence.
-     * @param cityState The city-state under consideration.
-     * @return The amount of gold to spend.
-     */
+    fun calculateCityStateValue(cityState: Civilization, civ: Civilization, personality: Personality): Int {
+        var value = 50 // Base value
+
+        // Value based on provided stats
+        for (stat in Stat.values()) {
+            if (cityState.cityStateFunctions.canProvideStat(stat)) {
+                var statValue = 20
+                if (civ.wantsToFocusOn(stat)) statValue *= 2
+                value += statValue
+            }
+        }
+
+        // Personality modifiers
+        if (personality.diplomacy > 6) value *= 1.3f.toInt()
+        
+        return value
+    }
+
     fun determineGoldToSpend(civ: Civilization, cityState: Civilization): Int {
         val diploManager = cityState.getDiplomacyManager(civ) ?: return 0
         return when {

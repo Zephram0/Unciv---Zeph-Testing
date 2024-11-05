@@ -4,9 +4,10 @@ import com.unciv.logic.civilization.Civilization
 import com.unciv.models.ruleset.nation.Personality
 import com.unciv.models.ruleset.nation.PersonalityValue
 import com.unciv.models.ruleset.unique.StateForConditionals
-import com.unciv.logic.automation.civilization.purchases.PurchaseOption
-import com.unciv.logic.automation.civilization.purchases.PurchaseDecisionEngine
 import com.unciv.models.ruleset.unit.BaseUnit
+import com.unciv.logic.automation.civilization.purchases.core.IPurchasingStrategy
+import com.unciv.logic.automation.civilization.purchases.core.PurchaseOption
+import com.unciv.logic.automation.civilization.purchases.core.PurchaseDecisionEngine
 
 object UnitStrategy : IPurchasingStrategy {
     override fun evaluatePurchases(civ: Civilization, personality: Personality): List<PurchaseOption> {
@@ -28,9 +29,11 @@ object UnitStrategy : IPurchasingStrategy {
                 else -> 1f
             }
 
+            // Calculate perceived value based on unit stats difference and strategic value
             val statsDifference = (upgradeTo.strength - unit.baseUnit.strength) + 
                                 (upgradeTo.rangedStrength - unit.baseUnit.rangedStrength)
             
+            // Use personality's aggressive and military values for warmonger preference
             val warPreference = (personality[PersonalityValue.Aggressive] + personality[PersonalityValue.Military]) / 10f
             val perceivedValue = statsDifference * strategicMultiplier * (1f + warPreference)
 
