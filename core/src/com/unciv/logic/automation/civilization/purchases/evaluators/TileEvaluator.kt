@@ -24,8 +24,8 @@ object TileEvaluator {
         }).toInt()
 
         // Apply personality modifiers
-         if (personality.expansion > 6) {
-            value = ((value * 1.2f).toInt())
+        if (personality.expansion > 6) {
+            value = (value * 1.2f).toInt()
         }
         
         return value
@@ -36,32 +36,26 @@ object TileEvaluator {
         
         // Calculate value from tile stats
         for (stat in Stat.values()) {
-            val statValueFloat = tile.stats.getStatValue(stat) * 10
-            var statValue = statValueFloat.toInt()
+            val statValue = when (stat) {
+                Stat.Production -> tile.stats.getTileStats(civ)[Stat.Production]
+                Stat.Food -> tile.stats.getTileStats(civ)[Stat.Food]
+                Stat.Gold -> tile.stats.getTileStats(civ)[Stat.Gold]
+                Stat.Science -> tile.stats.getTileStats(civ)[Stat.Science]
+                Stat.Culture -> tile.stats.getTileStats(civ)[Stat.Culture]
+                Stat.Happiness -> tile.stats.getTileStats(civ)[Stat.Happiness]
+                Stat.Faith -> tile.stats.getTileStats(civ)[Stat.Faith]
+            } * 10f
+    
             if (civ.wantsToFocusOn(stat)) {
-                statValue *= 2
+                value += (statValue * 2f).toInt()
+            } else {
+                value += statValue.toInt()
             }
-            value += statValue
         }
         
         return value
     }
-    
-    // Extension function to get stat value
-    private fun Stats.getStatValue(stat: Stat): Float {
-        return when (stat) {
-            Stat.Production -> production
-            Stat.Food -> food
-            Stat.Gold -> gold
-            Stat.Science -> science
-            Stat.Culture -> culture
-            Stat.Happiness -> happiness
-            Stat.Faith -> faith
-        }
-    }
 
     // Extension function to check if a tile has a resource
     private fun Tile.hasResource(): Boolean = resource != null
-
 }
-
