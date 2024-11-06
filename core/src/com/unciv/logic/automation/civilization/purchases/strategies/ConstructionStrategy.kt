@@ -62,9 +62,6 @@ object ConstructionStrategy : IPurchasingStrategy {
     override fun evaluatePurchases(civ: Civilization, personality: Personality): List<PurchaseOption> {
         val purchaseOptions = mutableListOf<PurchaseOption>()
 
-        // Similar to CityStateStrategy's gold check (lines 18-19)
-        if (civ.gold < 250) return purchaseOptions
-
         // Filter cities similar to how ConstructionAutomation handles city filtering (lines 56-70)
         for (city in civ.cities.filter { !it.isPuppet && !it.isBeingRazed }) {
             // Get recommended constructions from dedicated evaluators

@@ -28,13 +28,20 @@ object UseGoldAutomation {
             CityStateStrategy
         )
 
-        // Collect all possible purchases from each strategy
+        // Collect and filter purchase options based on available gold
         val allPurchaseOptions = purchasingStrategies.flatMap { strategy ->
             strategy.evaluatePurchases(civ, personality)
-        }
+        }.filter { it.cost <= civ.gold }
 
         // Select and execute the best purchase
         selectBestPurchase(allPurchaseOptions, civ, personality)?.let { selectedOption ->
+            // Double-check gold availability right before purchase
+            if (selectedOption.cost > civ.gold) {
+                println("Purchase of ${selectedOption.description} cancelled: Insufficient gold")
+                return
+            }
+            // Final safety check - if this fails, an earlier filter missed an invalid purchase
+            // This should never happen in normal operation as purchases should be filtered earlier
             try {
                 selectedOption.action.invoke()
             } catch (e: Exception) {
