@@ -149,7 +149,13 @@ object ConstructionStrategy : IPurchasingStrategy {
         civ: Civilization,
         personality: Personality
     ): PurchaseOption? {
-        val goldCost = construction.cost
+    // Get the gold cost for the construction
+        val goldCost = when (construction) {
+            is Building -> construction.getStatBuyCost(city, Stat.Gold) ?: return null
+            is BaseUnit -> construction.getStatBuyCost(city, Stat.Gold) ?: return null
+            else -> return null
+        }
+
         if (!city.cityConstructions.isConstructionPurchaseAllowed(
                 construction as? INonPerpetualConstruction ?: return null,
                 Stat.Gold,
@@ -165,14 +171,12 @@ object ConstructionStrategy : IPurchasingStrategy {
             else -> return null
         }
         println("${construction.name} value calculated: $perceivedValue")
-    
-        val goldCost = construction.cost
-        
+
         if (goldCost > civ.gold) {
             println("${construction.name} rejected: cost $goldCost exceeds available gold ${civ.gold}")
             return null
         }
-    
+
         if (!PurchaseDecisionEngine.shouldPurchase(perceivedValue, goldCost, civ.gold, civ)) {
             println("${construction.name} rejected by PurchaseDecisionEngine: " +
                     "value $perceivedValue, cost $goldCost")
