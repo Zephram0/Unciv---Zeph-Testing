@@ -59,6 +59,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import kotlin.math.absoluteValue
 
 enum class Proximity : IsPartOfGameInfoSerialization {
     None, // ie no cities
