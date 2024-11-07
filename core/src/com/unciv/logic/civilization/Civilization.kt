@@ -832,7 +832,7 @@ class Civilization : IsPartOfGameInfoSerialization {
 
     fun addGold(delta: Int) {
         val oldGold = gold
-        val goldPerTurn = statsForNextTurn.gold
+        val goldPerTurn = stats.statsForNextTurn.gold
         
         // not using Long.coerceIn - this stays in 32 bits
         gold = when {
