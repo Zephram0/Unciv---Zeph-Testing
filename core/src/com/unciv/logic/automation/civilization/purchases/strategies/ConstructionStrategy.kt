@@ -123,14 +123,15 @@ object ConstructionStrategy : IPurchasingStrategy {
         return purchaseOptions
     }
 
-    private fun canBuildConstruction(
-        construction: IConstruction,
-        city: City,
-        civ: Civilization
-    ): Boolean {
-        if (construction !is INonPerpetualConstruction) return true
-        return Automation.allowAutomatedConstruction(civ, city, construction)
-    }
+    // TODO: Remove this
+//    private fun canBuildConstruction(
+//        construction: IConstruction,
+//        city: City,
+//        civ: Civilization
+//    ): Boolean {
+//        if (construction !is INonPerpetualConstruction) return true
+//        return Automation.allowAutomatedConstruction(civ, city, construction)
+//    }
 
     /**
      * Evaluates a single construction (building or unit) for potential purchase.
@@ -148,23 +149,24 @@ object ConstructionStrategy : IPurchasingStrategy {
         civ: Civilization,
         personality: Personality
     ): PurchaseOption? {
-        if (!canBuildConstruction(construction, city, civ)) {
-            println("${construction.name} rejected: cannot build in ${city.name}")
+        val goldCost = construction.cost
+        if (!city.cityConstructions.isConstructionPurchaseAllowed(
+                construction as? INonPerpetualConstruction ?: return null,
+                Stat.Gold,
+                goldCost
+            )) {
+            println("${construction.name} rejected: purchase not allowed in ${city.name}")
             return null
         }
         
         val perceivedValue = when (construction) {
             is Building -> BuildingEvaluator.calculateBuildingValue(construction, city, personality)
             is BaseUnit -> UnitEvaluator.calculateUnitValue(construction, city, personality)
-            else -> 10
+            else -> return null
         }
         println("${construction.name} value calculated: $perceivedValue")
     
-        val goldCost = when (construction) {
-            is Building -> construction.cost
-            is BaseUnit -> construction.cost
-            else -> 0
-        }
+        val goldCost = construction.cost
         
         if (goldCost > civ.gold) {
             println("${construction.name} rejected: cost $goldCost exceeds available gold ${civ.gold}")
