@@ -821,12 +821,43 @@ class Civilization : IsPartOfGameInfoSerialization {
     /** Modify gold by a given amount making sure it does neither overflow nor underflow.
      * @param delta the amount to add (can be negative)
      */
+    //fun addGold(delta: Int) {
+        // not using Long.coerceIn - this stays in 32 bits
+    //    gold = when {
+    //        delta > 0 && gold > Int.MAX_VALUE - delta -> Int.MAX_VALUE
+    //        delta < 0 && gold < Int.MIN_VALUE - delta -> Int.MIN_VALUE
+    //        else -> gold + delta
+    //    }
+    //}
+
     fun addGold(delta: Int) {
+        val oldGold = gold
+        val goldPerTurn = statsForNextTurn.gold
+        
         // not using Long.coerceIn - this stays in 32 bits
         gold = when {
             delta > 0 && gold > Int.MAX_VALUE - delta -> Int.MAX_VALUE
             delta < 0 && gold < Int.MIN_VALUE - delta -> Int.MIN_VALUE
             else -> gold + delta
+        }
+    
+        // Always check if gold is negative
+        if (gold < 0) {
+            // Only debug if the change isn't explained by negative GPT
+            if (goldPerTurn >= 0 || (goldPerTurn < 0 && ((gold - oldGold).toFloat() / goldPerTurn.toFloat()).absoluteValue >= 1f)) {
+                println("WARNING: Unexpected negative gold detected for ${civName}:")
+                println("  Old gold: $oldGold")
+                println("  Delta: $delta")
+                println("  New gold: $gold")
+                println("  Gold per turn: $goldPerTurn")
+                if (goldPerTurn < 0) {
+                    println("  Percentage of GPT: ${((gold - oldGold).toFloat() / goldPerTurn.toFloat() * 100).roundToInt()}%")
+                }
+                // Print stack trace to identify the source
+                Thread.currentThread().stackTrace.take(5).forEach {
+                    println("  at ${it.className}.${it.methodName}(${it.fileName}:${it.lineNumber})")
+                }
+            }
         }
     }
 

@@ -65,7 +65,7 @@ object PurchaseDecisionEngine {
             goldPerTurn > 5 -> 0.9f  // Slightly liberal when profitable
             else -> 1.0f
         }
-        
+
         val actualRatio = perceivedValue.toFloat() / goldCost
         
         println("Purchase evaluation:")
@@ -78,11 +78,11 @@ object PurchaseDecisionEngine {
     fun isTileBetterThanCurrent(city: City, newTile: Tile, personality: Personality): Boolean {
         val currentTiles = city.workedTiles.map { city.tileMap[it] }
         if (currentTiles.isEmpty()) return true
-        
+
         val worstTile = currentTiles.minByOrNull { 
             calculateTileValue(it) 
         } ?: return false
-            
+
         return calculateTileValue(newTile) > calculateTileValue(worstTile)
     }
 
@@ -105,7 +105,6 @@ object PurchaseDecisionEngine {
                 else -> 20
             }
         }
-        
         return value
     }
 }
