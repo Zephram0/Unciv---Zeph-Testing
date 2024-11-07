@@ -125,7 +125,10 @@ object ConstructionStrategy : IPurchasingStrategy {
         civ: Civilization,
         personality: Personality
     ): PurchaseOption? {
-    // Get the gold cost for the construction
+        // Early type check and cast
+        val nonPerpetualConstruction = construction as? INonPerpetualConstruction ?: return null
+        
+        // Get the gold cost for the construction
         val goldCost = when (construction) {
             is Building -> construction.getStatBuyCost(city, Stat.Gold) ?: return null
             is BaseUnit -> construction.getStatBuyCost(city, Stat.Gold) ?: return null
@@ -165,14 +168,12 @@ object ConstructionStrategy : IPurchasingStrategy {
             baseValue = perceivedValue.toFloat(),
             description = "Purchase ${construction.name} in ${city.name}",
             action = { 
-                when (construction) {
-                    is INonPerpetualConstruction -> city.cityConstructions.purchaseConstruction(
-                        construction,
-                        -1,  // Not from queue
-                        false,  // Not automatic
-                        Stat.Gold
-                    )
-                }
+                city.cityConstructions.purchaseConstruction(
+                    nonPerpetualConstruction,
+                    -1,  // Not from queue
+                    false,  // Not automatic
+                    Stat.Gold
+                )
             }
         )
     }
