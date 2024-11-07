@@ -61,65 +61,41 @@ object ConstructionStrategy : IPurchasingStrategy {
 
     override fun evaluatePurchases(civ: Civilization, personality: Personality): List<PurchaseOption> {
         val purchaseOptions = mutableListOf<PurchaseOption>()
-
-        // Filter cities similar to how ConstructionAutomation handles city filtering (lines 56-70)
+    
         for (city in civ.cities.filter { !it.isPuppet && !it.isBeingRazed }) {
-            // Get recommended constructions from dedicated evaluators
-            // BuildingEvaluator (lines 8-12) considers city-specific needs
-            val recommendedBuilding = BuildingEvaluator.determineBuildingToPurchase(city, personality)
-            val recommendedUnit = UnitEvaluator.determineUnitToPurchase(city, personality)
-
-            // Evaluate recommended building if available
-            if (recommendedBuilding is Building) {
-                evaluateConstruction(recommendedBuilding, city, civ, personality)?.let { 
-                    purchaseOptions.add(it) 
-                }
-            }
-
-            // Evaluate recommended unit if available
-            if (recommendedUnit is BaseUnit) {
-                evaluateConstruction(recommendedUnit, city, civ, personality)?.let { 
-                    purchaseOptions.add(it) 
-                }
-            }
-
-            // Filter criteria for buildings matches ConstructionAutomation (lines 58-63):
-            // 1. Has positive cost (excludes free buildings)
-            // 2. Can be purchased with gold
-            // 3. Not the already evaluated recommended building
+            // Get all valid constructions in one go
             val constructableBuildings = city.cityConstructions.getBuildableBuildings()
                 .filter { building -> 
                     building.cost > 0 && 
+                    building.cost < civ.gold &&
                     building.name !in getDisabledAutoAssignConstructions(civ) &&
                     !shouldAvoidConstruction(building, city, personality) &&
-                    city.cityConstructions.isConstructionPurchaseAllowed(building, Stat.Gold, building.cost) &&
-                    building != recommendedBuilding
+                    city.cityConstructions.isConstructionPurchaseAllowed(building, Stat.Gold, building.cost)
                 }
-
-            // Similar filtering for units (lines 67-70)
+    
             val constructableUnits = city.cityConstructions.getConstructableUnits()
                 .filter { unit -> 
                     unit.cost > 0 &&
+                    unit.cost < civ.gold &&
                     unit.name !in getDisabledAutoAssignConstructions(civ) &&
                     !shouldAvoidConstruction(unit, city, personality) &&
-                    city.cityConstructions.isConstructionPurchaseAllowed(unit, Stat.Gold, unit.cost) &&
-                    (recommendedUnit == null || unit != recommendedUnit)
+                    city.cityConstructions.isConstructionPurchaseAllowed(unit, Stat.Gold, unit.cost)
                 }
-
-            // Evaluate all remaining valid constructions
+    
+            // Evaluate all constructions once
             constructableBuildings.forEach { building ->
                 evaluateConstruction(building, city, civ, personality)?.let { 
                     purchaseOptions.add(it) 
                 }
             }
-
+    
             constructableUnits.forEach { unit ->
                 evaluateConstruction(unit, city, civ, personality)?.let { 
                     purchaseOptions.add(it) 
                 }
             }
         }
-
+    
         return purchaseOptions
     }
 
@@ -196,7 +172,6 @@ object ConstructionStrategy : IPurchasingStrategy {
                         false,  // Not automatic
                         Stat.Gold
                     )
-                    else -> false
                 }
             }
         )
