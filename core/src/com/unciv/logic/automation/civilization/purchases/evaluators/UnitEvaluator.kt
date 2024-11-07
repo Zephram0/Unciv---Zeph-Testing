@@ -111,7 +111,7 @@ object UnitEvaluator {
         }
 
         // Increase value of naval units for coastal cities under threat
-        if (unit.isWaterUnit && city.isCoastal &&  // Changed from type.isWater()
+        if (unit.isWaterUnit && city.isCoastal() &&  // Changed from type.isWater()
             city.getTiles().any { it.militaryUnit?.civ?.isAtWarWith(city.civ) == true }) {
             value = (value * 1.3f).toInt()
         }
