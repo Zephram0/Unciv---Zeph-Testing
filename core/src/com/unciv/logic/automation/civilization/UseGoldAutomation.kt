@@ -28,26 +28,44 @@ object UseGoldAutomation {
             CityStateStrategy
         )
 
+
+        println("=== Purchase Evaluation for ${civ.civName} ===")
+        println("Available Gold: ${civ.gold}")
+        println("Gold per Turn: ${civ.stats.statsForNextTurn.gold}")
+        
         // Collect and filter purchase options based on available gold
         val allPurchaseOptions = purchasingStrategies.flatMap { strategy ->
-            strategy.evaluatePurchases(civ, personality)
+            val options = strategy.evaluatePurchases(civ, personality)
+            println("\n${strategy.javaClass.simpleName} evaluated ${options.size} options:")
+            options.forEach { option ->
+                println("  [${option.type}] ${option.description}")
+                println("    Value/Cost: ${option.baseValue}/${option.cost} = ${option.baseValue.toFloat()/option.cost}")
+            }
+            options
         }.filter { it.cost <= civ.gold }
 
+        println("\nFiltered to ${allPurchaseOptions.size} affordable options")
+        
         // Select and execute the best purchase
         selectBestPurchase(allPurchaseOptions, civ, personality)?.let { selectedOption ->
-            // Double-check gold availability right before purchase
-            if (selectedOption.cost > civ.gold) {
-                println("Purchase of ${selectedOption.description} cancelled: Insufficient gold")
-                return
+            println("\nSelected purchase: ${selectedOption.description}")
+            println("  Cost: ${selectedOption.cost}")
+            println("  Value: ${selectedOption.baseValue}")
+            
+            // Execute purchase
+            if (selectedOption.cost <= civ.gold) {
+                try {
+                    selectedOption.action.invoke()
+                    println("Purchase successful!")
+                } catch (e: Exception) {
+                    println("Purchase failed: ${e.message}")
+                }
+            } else {
+                println("Purchase cancelled: Insufficient gold")
             }
-            // Final safety check - if this fails, an earlier filter missed an invalid purchase
-            // This should never happen in normal operation as purchases should be filtered earlier
-            try {
-                selectedOption.action.invoke()
-            } catch (e: Exception) {
-                println("Failed to execute purchase: ${selectedOption.description}")
-            }
-        }
+        } ?: println("\nNo suitable purchases found")
+        
+        println("=== End of Purchase Evaluation ===\n")
     }
 
     /**

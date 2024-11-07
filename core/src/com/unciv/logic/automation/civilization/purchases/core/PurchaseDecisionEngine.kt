@@ -67,10 +67,6 @@ object PurchaseDecisionEngine {
         }
 
         val actualRatio = perceivedValue.toFloat() / goldCost
-        
-        println("[$cityName] Evaluating purchase of $constructionName:")
-        println("  - Value/Cost: $actualRatio (need: $requiredRatio)")
-        println("  - Gold: $goldAvailable, Cost: $goldCost")
     
         return actualRatio >= requiredRatio
     }
