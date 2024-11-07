@@ -843,7 +843,7 @@ class Civilization : IsPartOfGameInfoSerialization {
         }
     
         // Always check if gold is negative
-        if (gold < 0) {
+        if (gold < 0 && oldGold >= 0) {
             // Only debug if the change isn't explained by negative GPT
             if (goldPerTurn >= 0 || (goldPerTurn <= -1 && ((gold - oldGold).toFloat() / goldPerTurn.toFloat()).absoluteValue >= 1f)) {
                 // Get the caller information
