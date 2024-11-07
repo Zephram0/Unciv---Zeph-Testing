@@ -1,6 +1,7 @@
 package com.unciv.logic.automation.civilization.purchases.evaluators
 
 import com.unciv.logic.city.City
+import com.unciv.logic.civilization.Civilization
 import com.unciv.models.ruleset.nation.Personality
 import com.unciv.models.ruleset.nation.PersonalityValue
 import com.unciv.models.ruleset.unit.BaseUnit
@@ -44,7 +45,7 @@ object UnitEvaluator {
                     value = (value * 1.3f).toInt()
                 
                 // Value naval units less on inland cities
-                if (unit.type.isWater() && !city.isCoastal)
+                if (unit.isWaterUnit && !city.isCoastal)  // Changed from type.isWater()
                     value = (value * 0.7f).toInt()
             }
             // Value workers more early game
@@ -110,7 +111,7 @@ object UnitEvaluator {
         }
 
         // Increase value of naval units for coastal cities under threat
-        if (unit.type.isWater() && city.isCoastal && 
+        if (unit.isWaterUnit && city.isCoastal &&  // Changed from type.isWater()
             city.getTiles().any { it.militaryUnit?.civ?.isAtWarWith(city.civ) == true }) {
             value = (value * 1.3f).toInt()
         }
