@@ -45,7 +45,7 @@ object UnitEvaluator {
                     value = (value * 1.3f).toInt()
                 
                 // Value naval units less on inland cities
-                if (unit.isWaterUnit && !city.isCoastal)  // Changed from type.isWater()
+                if (unit.isWaterUnit && !city.isCoastal())  // Changed from type.isWater()
                     value = (value * 0.7f).toInt()
             }
             // Value workers more early game
