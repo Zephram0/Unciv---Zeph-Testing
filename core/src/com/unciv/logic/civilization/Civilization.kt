@@ -844,19 +844,28 @@ class Civilization : IsPartOfGameInfoSerialization {
         // Always check if gold is negative
         if (gold < 0) {
             // Only debug if the change isn't explained by negative GPT
-            if (goldPerTurn >= 0 || (goldPerTurn < 0 && ((gold - oldGold).toFloat() / goldPerTurn.toFloat()).absoluteValue >= 1f)) {
+            if (goldPerTurn >= 0 || (goldPerTurn <= -1 && ((gold - oldGold).toFloat() / goldPerTurn.toFloat()).absoluteValue >= 1f)) {
+                // Get the caller information
+                val caller = Thread.currentThread().stackTrace.getOrNull(2)
+                
                 println("WARNING: Unexpected negative gold detected for ${civName}:")
                 println("  Old gold: $oldGold")
                 println("  Delta: $delta")
                 println("  New gold: $gold")
                 println("  Gold per turn: $goldPerTurn")
-                if (goldPerTurn < 0) {
+                if (goldPerTurn <= -1) {
                     println("  Percentage of GPT: ${((gold - oldGold).toFloat() / goldPerTurn.toFloat() * 100).roundToInt()}%")
                 }
-                // Print stack trace to identify the source
-                Thread.currentThread().stackTrace.take(5).forEach {
-                    println("  at ${it.className}.${it.methodName}(${it.fileName}:${it.lineNumber})")
-                }
+                println("  Called from: ${caller?.fileName ?: "Unknown"}:${caller?.lineNumber ?: "?"} in ${caller?.methodName ?: "Unknown"}")
+                
+                // Print last 10 lines of stack trace
+                println("  Stack trace (last 10 calls):")
+                Thread.currentThread().stackTrace
+                    .drop(1)  // Drop the getStackTrace call itself
+                    .takeLast(10)  // Take only the last 10 elements
+                    .forEach {
+                        println("    at ${it.className}.${it.methodName}(${it.fileName}:${it.lineNumber})")
+                    }
             }
         }
     }
