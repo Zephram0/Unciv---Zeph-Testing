@@ -59,6 +59,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import kotlin.math.absoluteValue
 
 enum class Proximity : IsPartOfGameInfoSerialization {
     None, // ie no cities
@@ -821,12 +822,72 @@ class Civilization : IsPartOfGameInfoSerialization {
     /** Modify gold by a given amount making sure it does neither overflow nor underflow.
      * @param delta the amount to add (can be negative)
      */
+    //fun addGold(delta: Int) {
+        // not using Long.coerceIn - this stays in 32 bits
+    //    gold = when {
+    //        delta > 0 && gold > Int.MAX_VALUE - delta -> Int.MAX_VALUE
+    //        delta < 0 && gold < Int.MIN_VALUE - delta -> Int.MIN_VALUE
+    //        else -> gold + delta
+    //    }
+    //}
+
+        /**
+     * Extracts up to [maxDepth] relevant stack trace elements from the current thread.
+     * Filters out internal and unrelated calls, focusing on project-specific Kotlin files.
+     */
+    private fun getRelevantStackTrace(maxDepth: Int = 20): List<String> {
+        val stackTrace = Thread.currentThread().stackTrace
+        val relevantCalls = mutableListOf<String>()
+        
+        // Start from index 3 to skip getStackTrace, getRelevantStackTrace, and addGold
+        for (i in 3 until stackTrace.size) {
+            val element = stackTrace[i]
+            val className = element.className
+            val fileName = element.fileName
+            val methodName = element.methodName
+            
+            // Filter for project-specific classes (adjust the package name as needed)
+            if (className.startsWith("com.unciv") && fileName.endsWith(".kt")) {
+                relevantCalls.add("$fileName:${element.lineNumber} in $methodName")
+                if (relevantCalls.size >= maxDepth) break
+            }
+        }
+        
+        return relevantCalls
+    }
+
     fun addGold(delta: Int) {
+        val oldGold = gold
+        val goldPerTurn = stats.statsForNextTurn.gold
+        
         // not using Long.coerceIn - this stays in 32 bits
         gold = when {
             delta > 0 && gold > Int.MAX_VALUE - delta -> Int.MAX_VALUE
             delta < 0 && gold < Int.MIN_VALUE - delta -> Int.MIN_VALUE
             else -> gold + delta
+        }
+
+        
+        if (gold < 0 && oldGold >= 0) {
+            // Only debug if the change isn't explained by negative GPT
+            if (goldPerTurn >= 0 || (goldPerTurn <= -1 && ((gold - oldGold).toFloat() / goldPerTurn.toFloat()).absoluteValue >= 1f)) {
+                // Get the caller information
+                val relevantCalls = getRelevantStackTrace(20)
+                
+                println("WARNING: Unexpected negative gold detected for ${civName}:")
+                println("  Old gold: $oldGold")
+                println("  Delta: $delta")
+                println("  New gold: $gold")
+                println("  Gold per turn: $goldPerTurn")
+                if (goldPerTurn <= -1) {
+                    println("  Percentage of GPT: ${((gold - oldGold).toFloat() / goldPerTurn.toFloat() * 100).roundToInt()}%")
+                }
+
+                println("  Call Hierarchy (most recent first):")
+                relevantCalls.forEachIndexed { index, call ->
+                    println("    ${index + 1}. $call")
+                }
+            }
         }
     }
 

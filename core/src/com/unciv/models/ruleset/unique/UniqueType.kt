@@ -539,10 +539,6 @@ enum class UniqueType(
     NaturalWonderConvertNeighbors("Neighboring tiles will convert to [baseTerrain/terrainFeature]", UniqueTarget.Terrain, flags = UniqueFlag.setOfHiddenToUsers,
         docDescription = "Supports conditionals that need only a Tile as context and nothing else, like `<with [n]% chance>`, and applies them per neighbor." +
             "\nIf your mod renames Coast or Lakes, do not use this with one of these as parameter, as the code preventing artifacts won't work."),
-    @Deprecated("As of 4.12.19", ReplaceWith("Neighboring tiles will convert to [baseTerrain/terrainFeature] <in tiles without [simpleTerrain]>"))
-    NaturalWonderConvertNeighborsExcept("Neighboring tiles except [simpleTerrain] will convert to [baseTerrain/terrainFeature]", UniqueTarget.Terrain, flags = UniqueFlag.setOfHiddenToUsers,
-        docDescription = "Supports conditionals that need only a Tile as context and nothing else, like `<with [n]% chance>`, and applies them per neighbor." +
-            "\nIf your mod renames Coast or Lakes, do not use this with one of these as parameter, as the code preventing artifacts won't work."),
     GrantsStatsToFirstToDiscover("Grants [stats] to the first civilization to discover it", UniqueTarget.Terrain),
 
     // General terrain
@@ -654,16 +650,27 @@ enum class UniqueType(
     ///////////////////////////////////////// region 08 CONDITIONALS /////////////////////////////////////////
 
 
-    /////// general conditionals
-    ConditionalChance("with [amount]% chance", UniqueTarget.Conditional),
+    /////// game conditionals
     ConditionalEveryTurns("every [positiveAmount] turns", UniqueTarget.Conditional),
     ConditionalBeforeTurns("before turn number [amount]", UniqueTarget.Conditional),
     ConditionalAfterTurns("after turn number [amount]", UniqueTarget.Conditional),
+    ConditionalSpeed("on [speed] game speed", UniqueTarget.Conditional),
+    ConditionalVictoryEnabled("when [victoryType] Victory is enabled", UniqueTarget.Conditional),
+    ConditionalVictoryDisabled("when [victoryType] Victory is disabled", UniqueTarget.Conditional),
+    ConditionalReligionEnabled("when religion is enabled", UniqueTarget.Conditional),
+    ConditionalReligionDisabled("when religion is disabled", UniqueTarget.Conditional),
+    ConditionalEspionageEnabled("when espionage is enabled", UniqueTarget.Conditional),
+    ConditionalEspionageDisabled("when espionage is disabled", UniqueTarget.Conditional),
+
+    /////// general conditionals
+    ConditionalChance("with [amount]% chance", UniqueTarget.Conditional),
     ConditionalTutorialsEnabled("if tutorials are enabled", UniqueTarget.Conditional, flags = UniqueFlag.setOfHiddenToUsers), // Hidden as no translations needed for now
     ConditionalTutorialCompleted("if tutorial [comment] is completed", UniqueTarget.Conditional, flags = UniqueFlag.setOfHiddenToUsers), // Hidden as no translations needed for now
 
     /////// civ conditionals
-    ConditionalCivFilter("for [civFilter]", UniqueTarget.Conditional),
+    ConditionalCivFilter("for [civFilter] Civilizations", UniqueTarget.Conditional),
+    @Deprecated("As of 4.13.15", ReplaceWith("for [civFilter] Civilizations"))
+    ConditionalCivFilterOld("for [civFilter]", UniqueTarget.Conditional),
     ConditionalWar("when at war", UniqueTarget.Conditional),
     ConditionalNotWar("when not at war", UniqueTarget.Conditional),
     ConditionalGoldenAge("during a Golden Age", UniqueTarget.Conditional),
@@ -678,10 +685,6 @@ enum class UniqueType(
     ConditionalBeforeEra("before the [era]", UniqueTarget.Conditional),
     ConditionalStartingFromEra("starting from the [era]", UniqueTarget.Conditional),
     ConditionalIfStartingInEra("if starting in the [era]", UniqueTarget.Conditional),
-
-    ConditionalSpeed("on [speed] game speed", UniqueTarget.Conditional),
-    ConditionalVictoryEnabled("when [victoryType] Victory is enabled", UniqueTarget.Conditional),
-    ConditionalVictoryDisabled("when [victoryType] Victory is disabled", UniqueTarget.Conditional),
 
     ConditionalFirstCivToResearch("if no other Civilization has researched this", UniqueTarget.Conditional),
     ConditionalTech("after discovering [tech]", UniqueTarget.Conditional),
@@ -932,18 +935,25 @@ enum class UniqueType(
 
     ConditionalTimedUnique("for [amount] turns", UniqueTarget.MetaModifier,
         docDescription = "Turns this unique into a trigger, activating this unique as a *global* unique for a number of turns"),
+
     
+    @Deprecated("As of 4.13.18", ReplaceWith("Only available <when [victoryType] Victory is enabled>"))
+    HiddenWithoutVictoryType("Hidden when [victoryType] Victory is disabled", UniqueTarget.Building, UniqueTarget.Unit, flags = UniqueFlag.setOfHiddenToUsers),
+
+    @Deprecated("As of 4.13.18", ReplaceWith("Only available <when religion is enabled>"))
     HiddenWithoutReligion("Hidden when religion is disabled",
         UniqueTarget.Unit, UniqueTarget.Building, UniqueTarget.Ruins, UniqueTarget.Tutorial,
         flags = UniqueFlag.setOfHiddenToUsers),
+    
+    @Deprecated("As of 4.13.19", ReplaceWith("Only available <when espionage is enabled>"))
     HiddenWithoutEspionage("Hidden when espionage is disabled", UniqueTarget.Building,
         flags = UniqueFlag.setOfHiddenToUsers),
 
     AiChoiceWeight("[relativeAmount]% weight to this choice for AI decisions", UniqueTarget.Tech,
         UniqueTarget.Promotion, UniqueTarget.Policy, flags = UniqueFlag.setOfHiddenToUsers),
     
-    HiddenWithoutVictoryType("Hidden when [victoryType] Victory is disabled", UniqueTarget.Building, UniqueTarget.Unit, flags = UniqueFlag.setOfHiddenToUsers),
     HiddenFromCivilopedia("Will not be displayed in Civilopedia", *UniqueTarget.Displayable, flags = UniqueFlag.setOfHiddenToUsers),
+    ShowsWhenUnbuilable("Shown while unbuilable", UniqueTarget.Building, UniqueTarget.Unit, flags = UniqueFlag.setOfHiddenToUsers),
     ModifierHiddenFromUsers("hidden from users", UniqueTarget.MetaModifier),
     ForEveryCountable("for every [countable]", UniqueTarget.MetaModifier),
     ForEveryAmountCountable("for every [amount] [countable]", UniqueTarget.MetaModifier),
@@ -979,10 +989,15 @@ enum class UniqueType(
     ModMapPreselection("Mod preselects map [comment]", UniqueTarget.ModOptions, flags = UniqueFlag.setOfNoConditionals,
         docDescription = "Only meaningful for Mods containing several maps. When this mod is selected on the new game screen's custom maps mod dropdown, the named map will be selected on the map dropdown. Also disables selection by recently modified. Case insensitive."),
     ConditionalModEnabled("if [modFilter] is enabled", UniqueTarget.Conditional),
+    ConditionalModNotEnabled("if [modFilter] is not enabled", UniqueTarget.Conditional),
 
     // endregion
 
     ///////////////////////////////////////////// region 99 DEPRECATED AND REMOVED /////////////////////////////////////////////
+    @Deprecated("As of 4.12.19", ReplaceWith("Neighboring tiles will convert to [baseTerrain/terrainFeature] <in tiles without [simpleTerrain]>"), DeprecationLevel.ERROR)
+    NaturalWonderConvertNeighborsExcept("Neighboring tiles except [simpleTerrain] will convert to [baseTerrain/terrainFeature]", UniqueTarget.Terrain, flags = UniqueFlag.setOfHiddenToUsers,
+        docDescription = "Supports conditionals that need only a Tile as context and nothing else, like `<with [n]% chance>`, and applies them per neighbor." +
+                "\nIf your mod renames Coast or Lakes, do not use this with one of these as parameter, as the code preventing artifacts won't work."),
     @Deprecated("As of 4.12.16", ReplaceWith("in tiles adjacent to [tileFilter] tiles"), DeprecationLevel.ERROR)
     ConditionalAdjacentToOld("in tiles adjacent to [tileFilter]", UniqueTarget.Conditional),
     @Deprecated("As of 4.12.16", ReplaceWith("in tiles not adjacent to [tileFilter] tiles"), DeprecationLevel.ERROR)

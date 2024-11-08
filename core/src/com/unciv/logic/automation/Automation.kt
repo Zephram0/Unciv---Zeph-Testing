@@ -82,11 +82,11 @@ object Automation {
             else if (city.civ.getHappiness() < 1)
                 yieldStats.food /= 4
         } else if (!city.avoidGrowth) {
-            // NoFocus or Food/Growth Focus. Target +10 Food Surplus when happy
+            // NoFocus or Food/Growth Focus.
             if (surplusFood < 0)
                 yieldStats.food *= 8 // Starving, need Food, get to 0
-            else if (surplusFood < 10 && city.civ.getHappiness() > -1)
-                yieldStats.food *= 2
+            else if (city.civ.getHappiness() > -1)
+                yieldStats.food *= 2 //1.5f is preferred, but 2 provides more protection against badly configured personalities
             else if (city.civ.getHappiness() < 0) {
                 // 75% of excess food is wasted when in negative happiness
                 yieldStats.food /= 4
@@ -159,6 +159,7 @@ object Automation {
         val totalCarriableUnits =
             civInfo.units.getCivUnits().count { it.matchesFilter(carryFilter) }
         val totalCarryingSlots = civInfo.units.getCivUnits().sumOf { getCarryAmount(it) }
+                
         return totalCarriableUnits < totalCarryingSlots
     }
 
@@ -197,7 +198,7 @@ object Automation {
             .filter { allowSpendingResource(city.civ, it) }
             .filterNot {
                 // filter out carrier-type units that can't attack if we don't need them
-                (it.hasUnique(UniqueType.CarryAirUnits) && it.hasUnique(UniqueType.CannotAttack))
+                it.hasUnique(UniqueType.CarryAirUnits)
                         && providesUnneededCarryingSlots(it, city.civ)
             }
             // Only now do we filter out the constructable units because that's a heavier check
