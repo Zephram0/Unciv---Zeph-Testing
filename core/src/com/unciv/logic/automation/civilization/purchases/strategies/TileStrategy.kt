@@ -10,6 +10,7 @@ import com.unciv.logic.civilization.Civilization
 import com.unciv.logic.map.BFS
 import com.unciv.logic.map.tile.Tile
 import com.unciv.models.ruleset.nation.Personality
+import com.unciv.models.ruleset.nation.PersonalityValue
 import com.unciv.models.ruleset.tile.ResourceType
 import com.unciv.models.ruleset.unique.StateForConditionals
 import com.unciv.models.ruleset.unique.UniqueType
@@ -107,17 +108,13 @@ object TileStrategy : IPurchasingStrategy {
     private fun calculateTileValue(tile: Tile, civ: Civilization, city: City, personality: Personality): Float {
         var value = TileEvaluator.rankTile(tile, civ, personality).toFloat()
     
-        // Replace binary personality checks with linear scaling
+        // Scale each stat based on personality focus
         val tileStats = tile.stats.getTileStats(civ)
         for ((stat, statValue) in tileStats) {
             // Scale each stat based on personality focus
-            val personalityFocus = PersonalityValue.valueOf(stat.name).let { personality.scaledFocus(it) }
-            value += statValue * 10 * personalityFocus
+            value += statValue * 10f * personality.scaledFocus(PersonalityValue.valueOf(stat.name))
         }
-    
-        // Resource value consideration
-        value *= TileEvaluator.evaluateResourceValue(tile, civ, personality)
-        
+
         //TODO: Possibly move expansion value consideration to apply to all tiles
         // Apply strategic position modifiers with linear scaling
         val strategicScore = TileEvaluator.evaluateStrategicPosition(tile, civ, personality)

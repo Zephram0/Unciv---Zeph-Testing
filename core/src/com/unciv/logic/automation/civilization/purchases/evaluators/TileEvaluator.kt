@@ -1,10 +1,12 @@
 package com.unciv.logic.automation.civilization.purchases.evaluators
 
+import com.unciv.Constants
 import com.unciv.logic.civilization.Civilization
 import com.unciv.logic.civilization.diplomacy.DiplomacyFlags
 import com.unciv.logic.map.tile.Tile
 import com.unciv.logic.map.mapunit.MapUnit
 import com.unciv.models.ruleset.nation.Personality
+import com.unciv.models.ruleset.nation.PersonalityValue
 import com.unciv.models.ruleset.tile.ResourceType
 import com.unciv.models.ruleset.tile.TileResource
 import com.unciv.models.ruleset.unique.StateForConditionals
@@ -54,7 +56,7 @@ object TileEvaluator {
         
         // Calculate value from tile stats
         for (stat in Stat.values()) {
-            val statValue = tileStats[stat]?.toFloat() ?: 0f
+            val statValue = tileStats[stat]
             value += if (civ.wantsToFocusOn(stat)) {
                 (statValue * 2f).toInt()
             } else {
@@ -97,28 +99,36 @@ object TileEvaluator {
      * - Trade potential
      */
     fun evaluateResourceValue(tile: Tile, civ: Civilization, personality: Personality): Float {
-        val resource = tile.tileResource ?: return 1.0f
+        if (!tile.hasResource()) return 1.0f
+
+        val tileResource = tile.tileResource
         
-        // Check if we can improve this resource (using WorkerAutomation's logic)
-        if (!tile.improvementFunctions.canAnyImprovementBeBuiltHere(civ)) {
+        // Check if improvement can be built
+        val firstImprovement = tileResource.getImprovements().firstOrNull()?.let { 
+            civ.gameInfo.ruleset.tileImprovements[it] 
+        }
+        //comment?
+        if (firstImprovement == null || !tile.improvementFunctions.canBuildImprovement(firstImprovement, civ)) {
             return 0.75f
         }
         
         // Consider if we have a worker that can reach this tile - only if tech is available
-        val workerModifier = if (!techsAvailable) 0.9f else {
-            val hasAvailableWorker = civ.units.asSequence()
-                .filter { unit -> unit.hasUnique(UniqueType.CanBuildImprovements) && !unit.isBusy() }
-                .any { unit -> unit.movement.canReach(tile) }
+        val hasAvailableWorker = civ.units.getCivUnits().any { unit -> 
+            unit.hasUnique(UniqueType.BuildImprovements) && 
+            unit.action == null && !unit.automated &&
+            unit.movement.canReach(tile)
+        }
+        val workerModifier = if (!civ.tech.canResearchTech()) 0.9f else {
             if (hasAvailableWorker) 1.2f else 0.9f
         }
         
         //comment
         val improvementModifier = calculateImprovementModifier(tile, civ)
         
-        return when (resource.resourceType) {
-            ResourceType.Strategic -> evaluateStrategicResource(resource, civ, personality) * 
+        return when (tileResource.resourceType) {
+            ResourceType.Strategic -> evaluateStrategicResource(tileResource, civ, personality) * 
                 workerModifier * improvementModifier
-            ResourceType.Luxury -> evaluateLuxuryResource(resource, civ, personality) * 
+            ResourceType.Luxury -> evaluateLuxuryResource(tileResource, civ, personality) * 
                 workerModifier * improvementModifier
             else -> 1.0f * workerModifier * improvementModifier
         }
@@ -149,11 +159,8 @@ object TileEvaluator {
         }
         
         // Consider improvement technology requirements
-        val possibleImprovements = tile.tileResource?.let { resource ->
-            resource.getImprovements().mapNotNull { 
-                civ.gameInfo.ruleset.tileImprovements[it] 
-            }
-        } ?: emptyList()
+        val possibleImprovements = tile.tileResource.getImprovements()
+            .mapNotNull { civ.gameInfo.ruleset.tileImprovements[it] }
 
         //TODO: Add linear personality value modifier based on exact improvement time to clear and exact value upon clearing
         //TODO: Consider improvements. Consider value before improved, time to improve, and value after improved.
@@ -183,7 +190,7 @@ object TileEvaluator {
         if (civ.gameInfo.spaceResources.contains(resource.name) &&
             civ.hasUnique(UniqueType.EnablesConstructionOfSpaceshipParts)
         ) {
-            return 2f * (personality[PersonalityValue.Science] / 10f)
+            return (personality.scaledFocus((PersonalityValue.Science)) / 5f)
         }
 
         var value = 1.0f
@@ -206,7 +213,7 @@ object TileEvaluator {
                     .containsKey(resource.name)
             }
         }
-        value += (potentialUses * 0.1f) * (personality[PersonalityValue.Military] / 5f)
+        value += (potentialUses * 0.1f) * (personality.scaledFocus(PersonalityValue.Military) / 5f)
 
         return value
     }
@@ -224,21 +231,23 @@ object TileEvaluator {
         
         // Linear scaling based on happiness needs
         if (!civ.hasResource(resource.name)) {
-            val happinessNeed = (-civ.happiness).coerceAtLeast(0)
+            val happinessNeed = (-civ.stats.happiness).coerceAtLeast(0)
             value += happinessNeed * 2
         }
         
         //TODO: Is this cheating to know what other civs want?
         // Linear scaling based on trade potential
-        val tradingCivs = civ.diplomacy.values.count { 
-            it.otherCiv().wantsResource(resource.name) &&
-            !it.hasFlag(DiplomacyFlags.ResourceTradesCutShort)
+        val tradingCivs = civ.diplomacy.values.count { diplomacy -> 
+            diplomacy.otherCiv().cities.any { city -> 
+                city.demandedResource == resource.name 
+            } &&
+            !diplomacy.hasFlag(DiplomacyFlags.ResourceTradesCutShort)
         }
-        value += (tradingCivs * 0.15f) * (personality[PersonalityValue.Diplomacy] / 5f)
+        value += (tradingCivs * 0.15f) * (personality.scaledFocus(PersonalityValue.Diplomacy) / 5f)
     
         // Linear scaling for WLTKD potential
         val wltkdCities = civ.cities.count { it.demandedResource == resource.name }
-        value += (wltkdCities * 0.2f) * (personality[PersonalityValue.Growth] / 5f)
+        value += (wltkdCities * 0.2f) * (personality.scaledFocus(PersonalityValue.Food)) / 5f
 
         return value
     }
