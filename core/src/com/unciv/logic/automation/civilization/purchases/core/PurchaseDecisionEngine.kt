@@ -17,7 +17,7 @@ object PurchaseDecisionEngine {
         personality: Personality
     ): Float {
         val baseScore = option.baseValue / option.cost
-        
+
         // Apply personality modifiers
         val personalityMultiplier = when (option.type) {
             PurchaseOption.PurchaseType.Construction -> when {
@@ -25,16 +25,19 @@ object PurchaseDecisionEngine {
                 civ.wantsToFocusOn(Victory.Focus.Culture) -> 1.1f
                 else -> 1.0f
             }
+
             PurchaseOption.PurchaseType.UnitUpgrade -> when {
                 civ.wantsToFocusOn(Victory.Focus.Military) -> 1.3f
                 personality.military > 6 -> 1.2f
                 else -> 1.0f
             }
+
             PurchaseOption.PurchaseType.CityState -> when {
                 civ.wantsToFocusOn(Victory.Focus.CityStates) -> 1.4f
                 personality.diplomacy > 6 -> 1.2f
                 else -> 1.0f
             }
+
             PurchaseOption.PurchaseType.Tile -> when {
                 civ.wantsToFocusOn(Victory.Focus.Culture) -> 1.3f
                 personality.expansion > 6 -> 1.2f
@@ -48,26 +51,26 @@ object PurchaseDecisionEngine {
     fun shouldPurchase(perceivedValue: Int, goldCost: Int, goldAvailable: Int, civ: Civilization): Boolean {
         // Don't spend more than 80% of available gold
         if (goldCost > goldAvailable * 0.8f) return false
-        
+
         // Base value/cost ratio threshold
         var requiredRatio = when {
-            goldAvailable > 1000 -> 0.4f  // Rich civs can be more liberal
-            goldAvailable > 500 -> 0.6f   // Moderate threshold
+            goldAvailable > 2000 -> 0.4f  // Rich civs can be more liberal
+            goldAvailable > 1000 -> 0.6f + (0.4f - 0.6f) * ((goldAvailable - 1000) / 1000)  // Moderate threshold, linear from 0.6f to 0.4f
+            goldAvailable > 500 -> 0.8f + (0.6f - 0.8f) * ((goldAvailable - 500) / 500f)  // More conservative with low total gold, linear from 0.8f to 0.6f
             else -> 1.0f                  // Conservative when poor
         }
-        
+
         // Adjust ratio based on gold income
         val goldPerTurn = civ.stats.statsForNextTurn.gold
         requiredRatio *= when {
             goldPerTurn < 0 -> 1.5f  // More conservative when losing money
-            goldPerTurn > 20 -> 0.7f // Very liberal with high income
-            goldPerTurn > 10 -> 0.8f // More liberal with good income
-            goldPerTurn > 5 -> 0.9f  // Slightly liberal when profitable
+            goldPerTurn > 100 -> 0.5f // Very liberal with high income
+            goldPerTurn > 0 -> 1.0f - (goldPerTurn * 0.005f) // linear consideration from 1.0f at 0 to 0.5f at 100
             else -> 1.0f
         }
 
         val actualRatio = perceivedValue.toFloat() / goldCost
-    
+
         return actualRatio >= requiredRatio
     }
 
@@ -84,15 +87,15 @@ object PurchaseDecisionEngine {
 
     private fun calculateTileValue(tile: Tile): Int {
         var value = 0
-        
+
         // Base value from yields using Stats class
         val tileStats = tile.stats.getTileStats(null)  // null for observingCiv means civ-agnostic stats
-        
+
         // Use Stats' built-in iteration
         for ((stat, statValue) in tileStats) {
             value += (statValue * 10).toInt()
         }
-        
+
         // Resource value
         if (tile.resource != null) {
             value += when (tile.tileResource.resourceType) {

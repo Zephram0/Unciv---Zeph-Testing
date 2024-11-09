@@ -1,5 +1,6 @@
 package com.unciv.logic.automation.civilization.purchases.core
 
+//TODO: Add variable for perceived value
 class PurchaseOption(
     val type: PurchaseType,
     val cost: Int,

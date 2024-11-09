@@ -46,6 +46,7 @@ object UseGoldAutomation {
 
         println("\nFiltered to ${allPurchaseOptions.size} affordable options")
         
+        // TODO:Sort by perceived value in descending order for allPurchaseOptions
         // Select and execute the best purchase
         selectBestPurchase(allPurchaseOptions, civ, personality)?.let { selectedOption ->
             println("\nSelected purchase: ${selectedOption.description}")
