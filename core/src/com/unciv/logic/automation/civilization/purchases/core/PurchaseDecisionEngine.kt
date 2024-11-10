@@ -49,8 +49,8 @@ object PurchaseDecisionEngine {
     }
 
     fun shouldPurchase(perceivedValue: Int, goldCost: Int, goldAvailable: Int, civ: Civilization): Boolean {
-        // Don't spend more than 80% of available gold
-        if (goldCost > goldAvailable * 0.8f) return false
+        // Don't spend more than available gold
+        if (goldCost > goldAvailable) return false
 
         // Base value/cost ratio threshold
         var requiredRatio = when {
@@ -72,38 +72,5 @@ object PurchaseDecisionEngine {
         val actualRatio = perceivedValue.toFloat() / goldCost
 
         return actualRatio >= requiredRatio
-    }
-
-    fun isTileBetterThanCurrent(city: City, newTile: Tile, personality: Personality): Boolean {
-        val currentTiles = city.workedTiles.map { city.tileMap[it] }
-        if (currentTiles.isEmpty()) return true
-
-        val worstTile = currentTiles.minByOrNull { 
-            calculateTileValue(it) 
-        } ?: return false
-
-        return calculateTileValue(newTile) > calculateTileValue(worstTile)
-    }
-
-    private fun calculateTileValue(tile: Tile): Int {
-        var value = 0
-
-        // Base value from yields using Stats class
-        val tileStats = tile.stats.getTileStats(null)  // null for observingCiv means civ-agnostic stats
-
-        // Use Stats' built-in iteration
-        for ((stat, statValue) in tileStats) {
-            value += (statValue * 10).toInt()
-        }
-
-        // Resource value
-        if (tile.resource != null) {
-            value += when (tile.tileResource.resourceType) {
-                ResourceType.Strategic -> 50
-                ResourceType.Luxury -> 40
-                else -> 20
-            }
-        }
-        return value
     }
 }

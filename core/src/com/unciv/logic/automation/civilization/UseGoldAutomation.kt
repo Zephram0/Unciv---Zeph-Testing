@@ -32,7 +32,9 @@ object UseGoldAutomation {
         println("=== Purchase Evaluation for ${civ.civName} ===")
         println("Available Gold: ${civ.gold}")
         println("Gold per Turn: ${civ.stats.statsForNextTurn.gold}")
-        
+
+        //TODO: For each strategy, print the highest and lowest value options
+
         // Collect and filter purchase options based on available gold
         val allPurchaseOptions = purchasingStrategies.flatMap { strategy ->
             val options = strategy.evaluatePurchases(civ, personality)

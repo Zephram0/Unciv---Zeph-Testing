@@ -7,16 +7,12 @@ import com.unciv.logic.automation.civilization.purchases.core.PurchaseOption
 import com.unciv.logic.automation.civilization.purchases.evaluators.TileEvaluator
 import com.unciv.logic.city.City
 import com.unciv.logic.civilization.Civilization
-import com.unciv.logic.map.BFS
 import com.unciv.logic.map.tile.Tile
 import com.unciv.models.ruleset.nation.Personality
 import com.unciv.models.ruleset.nation.PersonalityValue
-import com.unciv.models.ruleset.tile.ResourceType
-import com.unciv.models.ruleset.unique.StateForConditionals
-import com.unciv.models.ruleset.unique.UniqueType
-import com.unciv.models.stats.Stat
 import com.unciv.models.stats.Stats
-
+import com.unciv.logic.city.managers.CityExpansionManager
+import com.unciv.models.stats.Stat
 
 /**
  * AI Strategy for purchasing tiles, integrating with CityStats and CityExpansionManager.
@@ -39,130 +35,270 @@ import com.unciv.models.stats.Stats
  *    - Securing strategic positions
  */
 object TileStrategy : IPurchasingStrategy {
+    // Cache for tile stats to avoid recalculation during a single evaluation cycle
+    private val tileStatsCache = mutableMapOf<Pair<Tile, City>, Stats>()
+    private val tileValueCache = mutableMapOf<Tile, Float>()
+    
     override fun evaluatePurchases(civ: Civilization, personality: Personality): List<PurchaseOption> {
-        val purchaseOptions = mutableListOf<PurchaseOption>()
-
-        for (city in civ.cities.filter { !it.isPuppet && !it.isBeingRazed }) {
-            // Use CityExpansionManager's getChoosableTiles() for valid tile selection
-            val expansionManager = city.expansion
-            val purchasableTiles = expansionManager.getChoosableTiles().asSequence()
-                .filter { expansionManager.canBuyTile(it) }
-                .sortedByDescending { tile ->
-                    // Cache the rankTile value to avoid redundant calculations
-                    val rank = TileEvaluator.rankTile(tile, civ, personality)
-                    val statsValue = calculateTileValueFromStats(tile, city)
-                    rank * statsValue
-                }
-
-            purchasableTiles.forEach { tile ->
-                val pathCost = expansionManager.getGoldCostOfTile(tile)
-                
-                // Cache the rankTile value
-                val tileRank = TileEvaluator.rankTile(tile, civ, personality)
-                
-                // Economic viability check using PurchaseDecisionEngine
-                if (!PurchaseDecisionEngine.shouldPurchase(
-                        tileRank,
-                        pathCost,
-                        civ.gold,
-                        civ
-                    )) return@forEach
-
-                // Check if tile would be worth working using PurchaseDecisionEngine
-                if (!PurchaseDecisionEngine.isTileBetterThanCurrent(city, tile, personality)) 
-                    return@forEach
-
-                val baseValue = calculateTileValue(tile, civ, city, personality)
-                
-                purchaseOptions.add(
-                    PurchaseOption(
-                        type = PurchaseOption.PurchaseType.Tile,
-                        cost = pathCost,
-                        baseValue = baseValue,
-                        description = getTileDescription(tile),
-                        action = { city.expansion.buyTile(tile) }
-                    )
-                )
-            }
-        }
-
-        return purchaseOptions
-    }
-
-    /** 
-     * Calculates tile value considering:
-     * - Base yields from CityStats
-     * - Strategic value from TileEvaluator
-     * - Civilization's victory focus
-     * - Leader personality traits
-     * - Current situation (happiness, resources needed)
-     */
-    /** 
-     * Calculates tile value considering:
-     * - Base yields from CityStats
-     * - Strategic value from TileEvaluator
-     * - Civilization's victory focus
-     * - Leader personality traits
-     * - Current situation (happiness, resources needed)
-     */
-    private fun calculateTileValue(tile: Tile, civ: Civilization, city: City, personality: Personality): Float {
-        var value = TileEvaluator.rankTile(tile, civ, personality).toFloat()
-    
-        // Scale each stat based on personality focus
-        val tileStats = tile.stats.getTileStats(civ)
-        for ((stat, statValue) in tileStats) {
-            // Scale each stat based on personality focus
-            value += statValue * 10f * personality.scaledFocus(PersonalityValue.valueOf(stat.name))
-        }
-
-        //TODO: Possibly move expansion value consideration to apply to all tiles
-        // Apply strategic position modifiers with linear scaling
-        val strategicScore = TileEvaluator.evaluateStrategicPosition(tile, civ, personality)
-        value *= (1.0f + strategicScore * 0.2f)  // Scale strategic importance
-    
-        // Consider city's growth needs with linear scaling
-        val workableTilesCount = city.getWorkableTiles().count().toFloat()
-        val populationPressure = city.population.population.toFloat() / (if (workableTilesCount > 0) workableTilesCount else 1f)
-        if (populationPressure > 0.8f) {  // City needs more workable tiles
-            value *= 1.0f + ((populationPressure - 0.8f) * 2f)  // Linear scaling based on population pressure
-        }
-    
-        // Consider city stats-based evaluation
-        value *= calculateTileValueFromStats(tile, city)
+        clearCaches()
         
-        return value
-    }
-
-    /** 
-     * Determines if purchasing this tile would be better than the city's current worst worked tile
-     * Used as an additional filter before creating purchase options
-     * 
-     * TODO: Add comments to confusing lines
-     * TODO: Make linear modifier based on how much better the new tile is, instead of binary
-     */
-    private fun isTileBetterThanCurrentWorked(city: City, newTile: Tile): Boolean {
-        val currentWorkedTiles = city.workedTiles.map { city.tileMap[it] }.filterNotNull()
-        if (currentWorkedTiles.isEmpty()) return true
-
-        val worstWorkedTile = currentWorkedTiles.minByOrNull { 
-            it.stats.getTileStats(city.civ).values.sum() 
-        } ?: return false
-
-        return newTile.stats.getTileStats(city.civ).values.sum() > 
-            worstWorkedTile.stats.getTileStats(city.civ).values.sum()
+        return civ.cities
+            .asSequence()
+            .filter { it.isNormalCity() }
+            .flatMap { city -> evaluateCityTiles(city, civ, personality) }
+            .toList()
     }
 
     /**
-     * Calculates base tile value from CityStats yields
-     * Considers food, production, gold, science, and culture outputs
-     * 
-     * EVALUATE: Is this necessary?
+     * Evaluates all purchasable tiles for a specific city.
+     * Returns a sequence of purchase options for valid tiles.
      */
-    private fun calculateTileValueFromStats(tile: Tile, city: City): Float {
-        return tile.stats.getTileStats(city.civ).values.sum().toFloat()
+    private fun evaluateCityTiles(
+        city: City,
+        civ: Civilization,
+        personality: Personality
+    ): Sequence<PurchaseOption> {
+        val expansionManager = city.expansion
+        val workableTilesCount = city.getWorkableTiles().count().toFloat()
+        val populationPressure = calculatePopulationPressure(city.population.population, workableTilesCount)
+        
+        return expansionManager.getChoosableTiles()
+            .asSequence()
+            .filter { expansionManager.canBuyTile(it) }
+            .mapNotNull { tile -> 
+                createPurchaseOption(
+                    tile = tile,
+                    city = city,
+                    civ = civ,
+                    personality = personality,
+                    expansionManager = expansionManager,
+                    populationPressure = populationPressure
+                )
+            }
     }
 
-    //TODO: Add comments
+    /**
+     * Creates a purchase option for a specific tile if it meets all criteria.
+     * Returns null if the tile should not be purchased.
+     */
+    private fun createPurchaseOption(
+        tile: Tile,
+        city: City,
+        civ: Civilization,
+        personality: Personality,
+        expansionManager: CityExpansionManager,
+        populationPressure: Float
+    ): PurchaseOption? {
+        val pathCost = expansionManager.getGoldCostOfTile(tile)
+        val tileRank = TileEvaluator.rankTile(tile, civ, personality)
+        
+        // Early exit conditions for efficiency
+        if (!PurchaseDecisionEngine.shouldPurchase(tileRank, pathCost, civ.gold, civ)) {
+            return null
+        }
+        
+        if (!isTileBetterThanCurrentWorked(city, tile)) {
+            return null
+        }
+        
+        val baseValue = calculateTileValue(
+            tile = tile,
+            civ = civ,
+            city = city,
+            personality = personality,
+            populationPressure = populationPressure
+        )
+        
+        return PurchaseOption(
+            type = PurchaseOption.PurchaseType.Tile,
+            cost = pathCost,
+            baseValue = baseValue,
+            description = getTileDescription(tile),
+            action = { city.expansion.buyTile(tile) }
+        )
+    }
+
+    /**
+     * Calculates the total value of a tile considering multiple factors and applies
+     * personality-based modifiers.
+     */
+    private fun calculateTileValue(
+        tile: Tile,
+        civ: Civilization,
+        city: City,
+        personality: Personality,
+        populationPressure: Float
+    ): Float {
+        return tileValueCache.getOrPut(tile) {
+            // Base strategic value from TileEvaluator
+            var value = TileEvaluator.rankTile(tile, civ, personality).toFloat()
+            
+            // Get tile stats value
+            val tileStats = getTileStats(tile, city)
+            val statsValue = calculateStatsValue(tileStats, personality)
+
+            // Calculate city-specific value using cached stats
+            val citySpecificValue = calculateCitySpecificValue(
+                tile = tile,
+                city = city,
+                personality = personality,
+                tileStats = tileStats  // Pass cached stats
+            )
+        
+            // Apply strategic position value
+            val strategicScore = TileEvaluator.evaluateStrategicPosition(tile, civ, personality)
+            
+            // Combine all components with appropriate weights
+            val combinedValue = (value * 0.3f + 
+                                citySpecificValue * 0.4f + 
+                                statsValue * 0.3f) * 
+                                (1.0f + strategicScore * 0.2f)
+            
+            // Apply population pressure modifier for growing cities
+            if (populationPressure > 0.8f) {
+                return@getOrPut combinedValue * (1.0f + ((populationPressure - 0.8f) * 2f))
+            }
+            
+            combinedValue
+        }
+    }
+
+    /**
+     * Calculates the value contribution from tile stats, weighted by personality traits
+     */
+    private fun calculateStatsValue(stats: Stats, personality: Personality): Float {
+        return stats.values.mapIndexed { index, value ->
+            val statType = Stat.values()[index]
+            (value * 10.0 * personality.scaledFocus(PersonalityValue.valueOf(statType.name))).toFloat()
+        }.sum()
+    }
+
+    /**
+     * Calculates city-specific value components for a tile.
+     *
+     * @param tile The tile being evaluated.
+     * @param city The city evaluating the tile.
+     * @param personality The personality traits of the civilization.
+     * @return The calculated city-specific value.
+     */
+    private fun calculateCitySpecificValue(
+        tile: Tile,
+        city: City,
+        personality: Personality,
+        tileStats: Stats 
+    ): Float {
+        var specificValue = 0f
+        
+        // Distance from city center (closer tiles are more valuable)
+        val distanceFromCenter = city.getCenterTile().aerialDistanceTo(tile)
+        val expansionFocus = personality.scaledFocus(PersonalityValue.Expansion)
+        specificValue += ((6 - distanceFromCenter).coerceAtLeast(0) * expansionFocus).toFloat()
+        
+        // Use cached stats for work pattern comparison
+        specificValue += createsBetterWorkPattern(city, tileStats)
+        
+        // Consider city's specific resource needs using cached stats
+        specificValue += cityNeedsResource(city, personality, tileStats)
+        
+        return specificValue
+    }
+
+    /**
+     * Determines if adding a new tile creates a better worked tile pattern for the city.
+     */
+    private fun createsBetterWorkPattern(
+        city: City,
+        newTileStats: Stats
+    ): Float {
+        val currentWorkedTiles = city.workedTiles
+            .mapNotNull { city.tileMap[it] }
+
+        if (currentWorkedTiles.isEmpty()) return 1f
+
+        val newTileValue = newTileStats.values.sum()
+
+        val worstWorkedTileValue = currentWorkedTiles
+            .minOfOrNull { getTileStats(it, city).values.sum() } ?: return 1f
+
+        return newTileValue - worstWorkedTileValue
+    }
+
+    /**
+     * Evaluates how much a city needs the resources provided by a tile based on critical city needs.
+     * Returns a float value where:
+     * - 0.0f means no critical need
+     * - Values up to 2.0f indicate increasing levels of need
+     *
+     * @param city The city evaluating the tile.
+     * @param tile The tile to be evaluated.
+     * @param personality The personality traits influencing need evaluation.
+     * @param tileStats The pre-calculated tile stats to avoid recalculation
+     * @return Float value indicating how critically the city needs the tile's yields
+     */
+    private fun cityNeedsResource(
+        city: City,
+        personality: Personality,
+        tileStats: Stats
+    ): Float {
+        var needScore = 0f
+        val currentStats = city.cityStats.currentCityStats
+        
+        // Food need - higher scaling when negative, linear otherwise
+        val foodPerTurn = city.foodForNextTurn()
+        needScore += when {
+            foodPerTurn <= 0 -> tileStats.food * (1.5f - foodPerTurn)  // Higher value when starving
+            else -> tileStats.food / foodPerTurn  // Linear decrease up to 0.2
+        } * personality.scaledFocus(PersonalityValue.Food)
+        
+        // Production need - linear increase as production decreases
+        needScore += (tileStats.production / currentStats.production.coerceAtLeast(0.5f)) * 
+            personality.scaledFocus(PersonalityValue.Production)
+        
+        // Culture need - linear increase as culture decreases
+        needScore += (tileStats.culture / currentStats.culture.coerceAtLeast(0.5f)) * 
+            personality.scaledFocus(PersonalityValue.Culture)
+        
+        return needScore
+    }
+
+    /**
+     * Calculates population pressure on city workable tiles
+     */
+    private fun calculatePopulationPressure(population: Int, workableTilesCount: Float): Float {
+        return if (workableTilesCount > 0) population.toFloat() / workableTilesCount else 1f
+    }
+
+    /**
+     * Gets cached tile stats or calculates and caches them
+     */
+    private fun getTileStats(tile: Tile, city: City): Stats {
+        return tileStatsCache.getOrPut(tile to city) {
+            tile.stats.getTileStats(city.civ)
+        }
+    }
+
+    /**
+     * Determines if a tile would be better than the current worst worked tile
+     */
+    private fun isTileBetterThanCurrentWorked(city: City, newTile: Tile): Boolean {
+        val currentWorkedTiles = city.workedTiles
+            .mapNotNull { city.tileMap[it] }
+        
+        if (currentWorkedTiles.isEmpty()) return true
+        
+        // Use already cached stats from previous calculations
+        val newTileStats = getTileStats(newTile, city)
+        val newTileValue = newTileStats.values.sum()
+        
+        val worstWorkedTileValue = currentWorkedTiles
+            .minOfOrNull { getTileStats(it, city).values.sum() } ?: return false
+            
+        return newTileValue > worstWorkedTileValue
+    }
+
+    /**
+     * Generates a descriptive string for the tile
+     */
     private fun getTileDescription(tile: Tile): String {
         val position = "(${tile.position.x}, ${tile.position.y})"
         return when {
@@ -172,17 +308,16 @@ object TileStrategy : IPurchasingStrategy {
         }
     }
 
-    //TODO: Add comments
-    private fun getPathToTile(city: City, targetTile: Tile): List<Tile>? {
-        val bfs = BFS(city.getCenterTile()) { it.getOwner() == null || it.owningCity == city }
-        bfs.stepUntilDestination(targetTile)
-        
-        val path = bfs.getPathTo(targetTile)
-            .toList()  // Convert Sequence to List
-            .filter { it.getOwner() == null }  // Filter unowned tiles
-        
-        // Only return the path if it's not empty
-        return if (path.isNotEmpty()) path.asReversed() else null
+    /**
+     * Clears all caches at the start of each evaluation cycle
+     */
+    private fun clearCaches() {
+        tileStatsCache.clear()
+        tileValueCache.clear()
     }
-   
+
+    /**
+     * Extension function to check if a city is a normal (non-puppet, non-razed) city
+     */
+    private fun City.isNormalCity() = !isPuppet && !isBeingRazed
 }
