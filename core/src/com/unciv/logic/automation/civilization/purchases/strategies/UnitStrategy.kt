@@ -12,6 +12,7 @@ import com.unciv.logic.automation.civilization.purchases.core.PurchaseDecisionEn
 object UnitStrategy : IPurchasingStrategy {
     override fun evaluatePurchases(civ: Civilization, personality: Personality): List<PurchaseOption> {
         val purchaseOptions = mutableListOf<PurchaseOption>()
+        println("\nEvaluating unit upgrades for ${civ.civName}:")
 
         for (unit in civ.units.getCivUnits()) {
             val stateForConditionals = StateForConditionals(civInfo = civ, unit = unit)
@@ -19,6 +20,8 @@ object UnitStrategy : IPurchasingStrategy {
             
             val upgradeCost = unit.upgrade.getCostOfUpgrade(upgradeTo)
             if (upgradeCost == 0) continue
+
+            println("  Evaluating ${unit.baseUnit.name}:")
 
             val strategicMultiplier = when {
                 unit.getTile().militaryUnit == unit -> 1.5f
@@ -37,7 +40,10 @@ object UnitStrategy : IPurchasingStrategy {
             val warPreference = (personality[PersonalityValue.Aggressive] + personality[PersonalityValue.Military]) / 10f
             val perceivedValue = statsDifference * strategicMultiplier * (1f + warPreference)
 
+            println("    Final perceived value: $perceivedValue")
+
             if (PurchaseDecisionEngine.shouldPurchase(perceivedValue.toInt(), upgradeCost, civ.gold, civ)) {
+                println("    Added to purchase options")
                 purchaseOptions.add(
                     PurchaseOption(
                         type = PurchaseOption.PurchaseType.UnitUpgrade,
@@ -47,6 +53,30 @@ object UnitStrategy : IPurchasingStrategy {
                         action = { unit.upgrade.performUpgrade(upgradeTo, false, upgradeCost) }
                     )
                 )
+            } else {
+                println("    Rejected by PurchaseDecisionEngine")
+            }
+        }
+
+        // Debug logging before return
+        if (purchaseOptions.isNotEmpty()) {
+            println("\nUnit Upgrade Options:")
+            val bestOption = purchaseOptions.maxByOrNull { it.baseValue / it.cost }
+            val worstOption = purchaseOptions.minByOrNull { it.baseValue / it.cost }
+            
+            bestOption?.let {
+                println("  Best: ${it.description}")
+                println("    Value/Cost: ${it.baseValue}/${it.cost} = ${it.baseValue.toFloat()/it.cost}")
+            }
+            worstOption?.let {
+                println("  Worst: ${it.description}")
+                println("    Value/Cost: ${it.baseValue}/${it.cost} = ${it.baseValue.toFloat()/it.cost}")
+            }
+            
+            println("\nAll Unit Upgrade Options:")
+            purchaseOptions.forEach { option ->
+                println("  ${option.description}")
+                println("    Value/Cost: ${option.baseValue}/${option.cost} = ${option.baseValue.toFloat()/option.cost}")
             }
         }
 
