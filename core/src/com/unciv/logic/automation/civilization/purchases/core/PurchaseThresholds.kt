@@ -24,7 +24,7 @@ object PurchaseThresholds {
     /**
      * Adjusts the perceived value based on the civilization's victory focus.
      */
-    fun adjustForVictoryFocus(value: Int, focus: Victory.Focus, personality: Personality): Int {
+    fun adjustForVictoryFocus(value: Int, focus: Victory.Focus): Int {
         return when (focus) {
             Victory.Focus.Military -> (value * 1.2).toInt()
             Victory.Focus.Culture -> (value * 1.1).toInt()

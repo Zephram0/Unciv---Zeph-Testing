@@ -17,19 +17,24 @@ object UseGoldAutomation {
      */
     fun useGold(civ: Civilization) {
         if (civ.gold <= 0) return
-
+    
         val personality = civ.getPersonality()
         val debugger = PurchaseDebugger
-        debugger.startNewSession(civ.civName, civ.gold, civ.stats.statsForNextTurn.gold)
-
+        
+        // Initialize debug session with civilization details
+        debugger.startNewSession(
+            civName = civ.civName,
+            availableGold = civ.gold,
+            goldPerTurn = civ.stats.statsForNextTurn.gold
+        )
+    
         val purchasingStrategies = listOf<IPurchasingStrategy>(
             ConstructionStrategy,
             UnitStrategy,
             TileStrategy,
             CityStateStrategy
         )
-
-        // Collect all purchase options from each strategy and log evaluations
+    
         // Collect all purchase options from each strategy and log evaluations
         val allPurchaseOptions = mutableListOf<PurchaseOption>()
         for (strategy in purchasingStrategies) {
@@ -37,26 +42,27 @@ object UseGoldAutomation {
             debugger.addStrategyEvaluation(strategy.javaClass.simpleName, options)
             allPurchaseOptions.addAll(options.filter { it.cost <= civ.gold })
         }
-
-        // Group options by type
-        val optionsByType = allPurchaseOptions.groupBy { it.type }
-
+    
         // Select the best purchase option based on value/cost ratio
         val selectedPurchase = selectBestPurchase(allPurchaseOptions, civ, personality)
         val finalScore = selectedPurchase?.let { calculateFinalScore(it, civ, personality) }
-
-        // Collect reasons for the final decision
-        val reasons = mutableListOf<String>()
-        if (selectedPurchase == null) {
-            reasons.add("No suitable purchases found within available gold.")
+    
+        // Add final decision to debug log
+        val reason = if (selectedPurchase == null) {
+            "No suitable purchases found within available gold."
         } else {
-            reasons.add("Selected purchase provides the best value for the gold spent.")
-            debugger.addFinalDecision(selectedPurchase, finalScore, reasons.first())
+            "Selected purchase provides the best value for the gold spent."
+        }
+        debugger.addFinalDecision(selectedPurchase, finalScore, reason)
+        
+        // Execute the selected purchase if any
+        if (selectedPurchase != null) {
             executePurchase(selectedPurchase)
         }
-
-        // Retrieve and print the comprehensive debug log
-        println(debugger.getDebugLog())
+    
+        // Output the debug log using the logger
+        val log = debugger.getDebugLog()
+        println(log) // Or use your preferred logging mechanism
     }
 
     /**
@@ -67,7 +73,8 @@ object UseGoldAutomation {
         civ: Civilization,
         personality: Personality
     ): PurchaseOption? {
-        return purchaseOptions.maxByOrNull { it.baseValue / it.cost }
+        if (purchaseOptions.isEmpty()) return null
+        return purchaseOptions.maxByOrNull { calculateFinalScore(it, civ, personality) }
     }
 
     /**
@@ -119,8 +126,9 @@ object UseGoldAutomation {
 
         // Apply situational modifiers
         val situationalMultiplier = when {
-            civ.isAtWar() && (option.type == PurchaseOption.PurchaseType.UnitUpgrade || option.type == PurchaseOption.PurchaseType.Construction) -> 1.3f
-            civ.gold < 0 && option.type == PurchaseOption.PurchaseType.Construction -> 0.7f // Be more conservative when losing money
+            civ.isAtWar() && (option.type == PurchaseOption.PurchaseType.UnitUpgrade || 
+                option.type == PurchaseOption.PurchaseType.Construction) -> 1.3f
+            civ.gold < 0 && option.type == PurchaseOption.PurchaseType.Construction -> 0.7f
             else -> 1f
         }
 

@@ -17,6 +17,7 @@ import com.unciv.models.ruleset.unique.UniqueType
 import com.unciv.GUI
 import com.unciv.models.ruleset.INonPerpetualConstruction
 import com.unciv.logic.automation.Automation
+import com.unciv.logic.automation.civilization.purchases.debug.PurchaseDebugger
 
 /**
  * Strategy for purchasing both buildings and units in cities.
@@ -28,7 +29,7 @@ import com.unciv.logic.automation.Automation
  * 3. Considers city status (non-puppet, non-razed)
  * 4. Evaluates strategic value vs gold cost
  * 
- * Similar to ConstructionAutomation.kt (lines 32-92), this strategy considers:
+ * Similar to ConstructionAutomation.kt, this strategy considers:
  * - City production levels
  * - Civilization's current needs (gold, happiness, culture)
  * - Victory condition requirements
@@ -36,10 +37,23 @@ import com.unciv.logic.automation.Automation
  */
 object ConstructionStrategy : IPurchasingStrategy {
 
+    private val debugger = PurchaseDebugger
+
+    /**
+     * Retrieves a set of constructions that are disabled for auto-assignment based on civilization settings.
+     */
     private fun getDisabledAutoAssignConstructions(civ: Civilization): Set<String> =
         if (civ.isHuman()) GUI.getSettings().disabledAutoAssignConstructions
         else emptySet()
 
+    /**
+     * Determines whether a construction should be avoided based on personality traits.
+     *
+     * @param construction The construction to evaluate.
+     * @param city The city where the construction would be built.
+     * @param personality The civilization's personality traits.
+     * @return True if the construction should be avoided, false otherwise.
+     */
     private fun shouldAvoidConstruction(
         construction: IConstruction,
         city: City,
@@ -59,65 +73,73 @@ object ConstructionStrategy : IPurchasingStrategy {
         return false
     }
 
+    /**
+     * Evaluates potential purchase options for constructions (buildings and units) in cities.
+     *
+     * @param civ The civilization making the purchases.
+     * @param personality The civilization's personality traits.
+     * @return A list of viable PurchaseOption objects.
+     */
     override fun evaluatePurchases(civ: Civilization, personality: Personality): List<PurchaseOption> {
         val purchaseOptions = mutableListOf<PurchaseOption>()
-    
+
+        // Start debug session for this strategy
+        debugger.appendLine("\nEvaluating construction purchases for ${civ.civName}:")
+
         for (city in civ.cities.filter { !it.isPuppet && !it.isBeingRazed }) {
-            // Get all valid constructions in one go
+            debugger.appendLine("Evaluating city: ${city.name}")    
+
+            // Retrieve all valid buildings for purchase
             val constructableBuildings = city.cityConstructions.getBuildableBuildings()
-                .filter { building -> 
-                    building.cost > 0 && 
+                .filter { building ->
+                    building.cost > 0 &&
                     building.cost < civ.gold &&
                     building.name !in getDisabledAutoAssignConstructions(civ) &&
                     !shouldAvoidConstruction(building, city, personality) &&
                     city.cityConstructions.isConstructionPurchaseAllowed(building, Stat.Gold, building.cost)
                 }
-    
+
+            // Retrieve all valid units for purchase
             val constructableUnits = city.cityConstructions.getConstructableUnits()
-                .filter { unit -> 
+                .filter { unit ->
                     unit.cost > 0 &&
                     unit.cost < civ.gold &&
                     unit.name !in getDisabledAutoAssignConstructions(civ) &&
                     !shouldAvoidConstruction(unit, city, personality) &&
                     city.cityConstructions.isConstructionPurchaseAllowed(unit, Stat.Gold, unit.cost)
                 }
-    
-            // Evaluate all constructions once
+
+            // Evaluate all buildings and units
             constructableBuildings.forEach { building ->
-                evaluateConstruction(building, city, civ, personality)?.let { 
-                    purchaseOptions.add(it) 
+                debugger.appendLine("Evaluating building: ${building.name}")
+                evaluateConstruction(building, city, civ, personality)?.let { option ->
+                    purchaseOptions.add(option)
+                    debugger.appendLine("Added building purchase option: ${option.description}")
                 }
             }
-    
+
             constructableUnits.forEach { unit ->
-                evaluateConstruction(unit, city, civ, personality)?.let { 
-                    purchaseOptions.add(it) 
+                debugger.appendLine("Evaluating unit: ${unit.name}")
+                evaluateConstruction(unit, city, civ, personality)?.let { option ->
+                    purchaseOptions.add(option)
+                    debugger.appendLine("Added unit purchase option: ${option.description}")
                 }
             }
         }
+
+        debugger.addStrategyEvaluation("ConstructionStrategy", purchaseOptions)
     
         return purchaseOptions
     }
 
-    // TODO: Remove this
-//    private fun canBuildConstruction(
-//        construction: IConstruction,
-//        city: City,
-//        civ: Civilization
-//    ): Boolean {
-//        if (construction !is INonPerpetualConstruction) return true
-//        return Automation.allowAutomatedConstruction(civ, city, construction)
-//    }
-
     /**
      * Evaluates a single construction (building or unit) for potential purchase.
-     * Uses similar evaluation logic to ConstructionAutomation (lines 363-382).
-     * 
-     * @param construction The construction to evaluate
-     * @param city The city where the construction would be built
-     * @param civ The civilization making the purchase
-     * @param personality The civilization's personality traits
-     * @return PurchaseOption if the construction should be considered, null otherwise
+     *
+     * @param construction The construction to evaluate.
+     * @param city The city where the construction would be built.
+     * @param civ The civilization making the purchase.
+     * @param personality The civilization's personality traits.
+     * @return A PurchaseOption if the construction is viable, null otherwise.
      */
     private fun evaluateConstruction(
         construction: IConstruction,
@@ -126,8 +148,15 @@ object ConstructionStrategy : IPurchasingStrategy {
         personality: Personality
     ): PurchaseOption? {
         // Early type check and cast
-        val nonPerpetualConstruction = construction as? INonPerpetualConstruction ?: return null
-        
+        debugger.appendLine("Evaluating construction: ${construction.name}")
+
+        // Early type check and cast
+        val nonPerpetualConstruction = construction as? INonPerpetualConstruction
+        if (nonPerpetualConstruction == null) {
+            debugger.appendLine("Rejected: Not a non-perpetual construction")
+            return null
+        }
+
         // Get the gold cost for the construction
         val goldCost = when (construction) {
             is Building -> construction.getStatBuyCost(city, Stat.Gold) ?: return null
@@ -136,29 +165,41 @@ object ConstructionStrategy : IPurchasingStrategy {
         }
 
         if (!city.cityConstructions.isConstructionPurchaseAllowed(
-                construction as? INonPerpetualConstruction ?: return null,
+                nonPerpetualConstruction,
                 Stat.Gold,
                 goldCost
             )) {
-            println("${construction.name} rejected: purchase not allowed in ${city.name}")
+            debugger.appendLine("Rejected: Purchase not allowed in ${city.name}")
             return null
         }
-        
+
         val perceivedValue = when (construction) {
-            is Building -> BuildingEvaluator.calculateBuildingValue(construction, city, personality)
-            is BaseUnit -> UnitEvaluator.calculateUnitValue(construction, city, personality)
-            else -> return null
+            is Building -> {
+                val value = BuildingEvaluator.calculateBuildingValue(construction, city, personality)
+                debugger.appendLine("Building value calculated: $value")
+                value
+            }
+            is BaseUnit -> {
+                val value = UnitEvaluator.calculateUnitValue(construction, city, personality)
+                debugger.appendLine("Unit value calculated: $value")
+                value
+            }
+            else -> {
+                debugger.appendLine("Rejected: Invalid construction type")
+                return null
+            }
         }
-        println("${construction.name} value calculated: $perceivedValue")
+
+        debugger.appendLine("${construction.name} value calculated: $perceivedValue")
 
         if (goldCost > civ.gold) {
-            println("${construction.name} rejected: cost $goldCost exceeds available gold ${civ.gold}")
+            debugger.appendLine("${construction.name} rejected: cost $goldCost exceeds available gold ${civ.gold}")
             return null
         }
 
         if (!PurchaseDecisionEngine.shouldPurchase(perceivedValue, goldCost, civ.gold, civ)) {
-            println("${construction.name} rejected by PurchaseDecisionEngine: " +
-                    "value $perceivedValue, cost $goldCost")
+            debugger.appendLine("${construction.name} rejected by PurchaseDecisionEngine: " +
+                            "value $perceivedValue, cost $goldCost")
             return null
         }
 

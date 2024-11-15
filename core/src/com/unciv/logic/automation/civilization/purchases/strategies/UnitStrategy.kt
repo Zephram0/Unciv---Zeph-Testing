@@ -8,11 +8,14 @@ import com.unciv.models.ruleset.unit.BaseUnit
 import com.unciv.logic.automation.civilization.purchases.core.IPurchasingStrategy
 import com.unciv.logic.automation.civilization.purchases.core.PurchaseOption
 import com.unciv.logic.automation.civilization.purchases.core.PurchaseDecisionEngine
+import com.unciv.logic.automation.civilization.purchases.debug.PurchaseDebugger
 
 object UnitStrategy : IPurchasingStrategy {
     override fun evaluatePurchases(civ: Civilization, personality: Personality): List<PurchaseOption> {
         val purchaseOptions = mutableListOf<PurchaseOption>()
-        println("\nEvaluating unit upgrades for ${civ.civName}:")
+        val debugger = PurchaseDebugger
+
+        debugger.appendLine("\nEvaluating unit upgrades for ${civ.civName}:")
 
         for (unit in civ.units.getCivUnits()) {
             val stateForConditionals = StateForConditionals(civInfo = civ, unit = unit)
@@ -20,8 +23,6 @@ object UnitStrategy : IPurchasingStrategy {
             
             val upgradeCost = unit.upgrade.getCostOfUpgrade(upgradeTo)
             if (upgradeCost == 0) continue
-
-            println("  Evaluating ${unit.baseUnit.name}:")
 
             val strategicMultiplier = when {
                 unit.getTile().militaryUnit == unit -> 1.5f
@@ -34,16 +35,15 @@ object UnitStrategy : IPurchasingStrategy {
 
             // Calculate perceived value based on unit stats difference and strategic value
             val statsDifference = (upgradeTo.strength - unit.baseUnit.strength) + 
-                                (upgradeTo.rangedStrength - unit.baseUnit.rangedStrength)
+                                  (upgradeTo.rangedStrength - unit.baseUnit.rangedStrength)
             
-            // Use personality's aggressive and military values for warmonger preference
             val warPreference = (personality[PersonalityValue.Aggressive] + personality[PersonalityValue.Military]) / 10f
             val perceivedValue = statsDifference * strategicMultiplier * (1f + warPreference)
 
-            println("    Final perceived value: $perceivedValue")
+            debugger.appendLine("    Final perceived value: $perceivedValue")
 
             if (PurchaseDecisionEngine.shouldPurchase(perceivedValue.toInt(), upgradeCost, civ.gold, civ)) {
-                println("    Added to purchase options")
+                debugger.appendLine("    Added to purchase options")
                 purchaseOptions.add(
                     PurchaseOption(
                         type = PurchaseOption.PurchaseType.UnitUpgrade,
@@ -54,29 +54,29 @@ object UnitStrategy : IPurchasingStrategy {
                     )
                 )
             } else {
-                println("    Rejected by PurchaseDecisionEngine")
+                debugger.appendLine("    Rejected by PurchaseDecisionEngine")
             }
         }
 
         // Debug logging before return
         if (purchaseOptions.isNotEmpty()) {
-            println("\nUnit Upgrade Options:")
+            debugger.appendLine("\nUnit Upgrade Options:")
             val bestOption = purchaseOptions.maxByOrNull { it.baseValue / it.cost }
             val worstOption = purchaseOptions.minByOrNull { it.baseValue / it.cost }
             
             bestOption?.let {
-                println("  Best: ${it.description}")
-                println("    Value/Cost: ${it.baseValue}/${it.cost} = ${it.baseValue.toFloat()/it.cost}")
+                debugger.appendLine("  Best: ${it.description}")
+                debugger.appendLine("    Value/Cost: ${it.baseValue}/${it.cost} = ${it.baseValue / it.cost}")
             }
             worstOption?.let {
-                println("  Worst: ${it.description}")
-                println("    Value/Cost: ${it.baseValue}/${it.cost} = ${it.baseValue.toFloat()/it.cost}")
+                debugger.appendLine("  Worst: ${it.description}")
+                debugger.appendLine("    Value/Cost: ${it.baseValue}/${it.cost} = ${it.baseValue / it.cost}")
             }
             
-            println("\nAll Unit Upgrade Options:")
+            debugger.appendLine("\nAll Unit Upgrade Options:")
             purchaseOptions.forEach { option ->
-                println("  ${option.description}")
-                println("    Value/Cost: ${option.baseValue}/${option.cost} = ${option.baseValue.toFloat()/option.cost}")
+                debugger.appendLine("  ${option.description}")
+                debugger.appendLine("    Value/Cost: ${option.baseValue}/${option.cost} = ${option.baseValue / option.cost}")
             }
         }
 
