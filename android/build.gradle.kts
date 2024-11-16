@@ -19,6 +19,33 @@ android {
         versionCode = 1
         versionName = "1.0"
     }
+
+    signingConfigs {
+        create("release") {
+            // You'll need to create a keystore file and provide these values
+            storeFile = file("release-key.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: project.properties["KEYSTORE_PASSWORD"].toString()
+            keyAlias = System.getenv("KEY_ALIAS") ?: project.properties["KEY_ALIAS"].toString()
+            keyPassword = System.getenv("KEY_PASSWORD") ?: project.properties["KEY_PASSWORD"].toString()
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            isDebuggable = true
+        }
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
 }
 
 dependencies {

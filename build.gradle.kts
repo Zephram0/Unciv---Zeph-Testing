@@ -15,9 +15,36 @@ allprojects {
 
     configurations.all {
         resolutionStrategy {
-            // Enforce specific JNA versions
-            force("net.java.dev.jna:jna:5.14.0")
-            force("net.java.dev.jna:jna-platform:5.14.0")
+            // Force Kotlin and related dependencies
+            force(
+                // Kotlin dependencies
+                "org.jetbrains.kotlin:kotlin-stdlib:1.9.21",
+                "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.21",
+                "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.21",
+                "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.21",
+                
+                // Coroutines dependencies
+                "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.2",
+                "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.2",
+                "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.2",
+                "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.2",
+                "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.7.2",
+                "org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.7.2",
+                
+                // SLF4J
+                "org.slf4j:slf4j-api:1.7.36",
+                
+                // JNA
+                "net.java.dev.jna:jna:5.14.0",
+                "net.java.dev.jna:jna-platform:5.14.0",
+                
+                // Other dependencies
+                "org.jetbrains:annotations:23.0.0"
+            )
+            
+            failOnVersionConflict()
+            cacheDynamicVersionsFor(24, "hours")
+            cacheChangingModulesFor(24, "hours")
         }
     }
 }
