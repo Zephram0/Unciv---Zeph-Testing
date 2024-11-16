@@ -1,26 +1,19 @@
 plugins {
     kotlin("jvm")
+    kotlin("plugin.serialization")
     application
 }
 
 val gdxVersion: String by project
 val kotlinVersion: String by project
+val coroutinesVersion: String by project
+val ktorVersion: String by project
 
 sourceSets {
     main {
         kotlin.srcDir("src")
+        resources.srcDir("src/main/resources")
         resources.srcDir("../android/assets")
-    }
-}
-
-configurations {
-    all {
-        resolutionStrategy {
-            force("net.java.dev.jna:jna:5.14.0")
-            force("net.java.dev.jna:jna-platform:5.14.0")
-            cacheDynamicVersionsFor(24, "hours")
-            cacheChangingModulesFor(24, "hours")
-        }
     }
 }
 
@@ -29,23 +22,26 @@ repositories {
     maven { url = uri("https://jitpack.io") }
 }
 
-// Add JVM args for Mac if needed
-val jvmArgsForMac = listOf("-XstartOnFirstThread", "-Djava.awt.headless=true")
-tasks.run {
-    if ("mac" in System.getProperty("os.name").lowercase()) {
-        jvmArgs = jvmArgsForMac
-    }
-}
-
 dependencies {
     implementation(project(":core"))
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion")
     implementation("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
     implementation("com.badlogicgames.gdx:gdx-tools:$gdxVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
-    implementation("com.github.Vatuu:discord-rpc:1.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("com.github.Vatuu:discord-rpc:1.6.2") {
+        exclude(group = "net.java.dev.jna")
+        exclude(group = "net.java.dev.jna", module = "jna-platform")
+    }
 }
 
 application {
     mainClass.set("com.unciv.app.desktop.DesktopLauncher")
+}
+
+tasks.named<JavaExec>("run") {
+    if ("mac" in System.getProperty("os.name").lowercase()) {
+        jvmArgs = listOf("-XstartOnFirstThread", "-Djava.awt.headless=true")
+    }
 }

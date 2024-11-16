@@ -1,17 +1,9 @@
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        mavenCentral()
-        google()
-    }
-}
-
 plugins {
-    kotlin("multiplatform") apply false
-    kotlin("plugin.serialization") apply false
-    id("com.android.application") apply false
-    id("com.android.library") apply false
-    id("io.gitlab.arturbosch.detekt") apply false
+    kotlin("multiplatform") version "1.9.21" apply false
+    kotlin("plugin.serialization") version "1.9.21" apply false
+    id("com.android.application") version "8.2.2" apply false
+    id("com.android.library") version "8.2.2" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.23.0" apply false
 }
 
 allprojects {
@@ -20,18 +12,35 @@ allprojects {
         google()
         maven { url = uri("https://jitpack.io") }
     }
+
+    configurations.all {
+        resolutionStrategy {
+            // Enforce specific JNA versions
+            force("net.java.dev.jna:jna:5.14.0")
+            force("net.java.dev.jna:jna-platform:5.14.0")
+        }
+    }
 }
+
+tasks.register("jnaDependencyInsight") {
+    doLast {
+        configurations.forEach { config ->
+            println("Configuration: ${config.name}")
+            config.resolvedConfiguration.firstLevelModuleDependencies
+                .filter { it.moduleGroup == "net.java.dev.jna" }
+                .forEach { dep ->
+                    println(" - ${dep.moduleGroup}:${dep.moduleName}:${dep.moduleVersion}")
+                }
+        }
+    }
+}
+
 
 // Make versions available to all projects
-ext {
-    set("gdxVersion", "1.12.1")
-    set("kotlinVersion", "1.9.21")  // Add explicit Kotlin version
+project.ext {
+    set("gdxVersion", project.property("gdxVersion") as String)
+    set("kotlinVersion", project.property("kotlinVersion") as String)
+    set("coroutinesVersion", project.property("coroutinesVersion") as String)
+    set("ktorVersion", project.property("ktorVersion") as String)
+    set("lwjglVersion", project.property("lwjglVersion") as String)
 }
-
-// Define dependency versions retrieved from gradle.properties
-val gdxVersion: String by project
-val coroutinesVersion: String by project
-val kotlinVersion: String by project
-val ktorVersion: String by project
-val lwjglVersion: String by project
-val appVersion: String by project
