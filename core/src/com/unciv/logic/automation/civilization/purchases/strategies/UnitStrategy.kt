@@ -8,14 +8,10 @@ import com.unciv.models.ruleset.unit.BaseUnit
 import com.unciv.logic.automation.civilization.purchases.core.IPurchasingStrategy
 import com.unciv.logic.automation.civilization.purchases.core.PurchaseOption
 import com.unciv.logic.automation.civilization.purchases.core.PurchaseDecisionEngine
-import com.unciv.logic.automation.civilization.purchases.debug.PurchaseDebugger
 
 object UnitStrategy : IPurchasingStrategy {
     override fun evaluatePurchases(civ: Civilization, personality: Personality): List<PurchaseOption> {
         val purchaseOptions = mutableListOf<PurchaseOption>()
-        val debugger = PurchaseDebugger
-
-        debugger.appendLine("\nEvaluating unit upgrades for ${civ.civName}:")
 
         for (unit in civ.units.getCivUnits()) {
             val stateForConditionals = StateForConditionals(civInfo = civ, unit = unit)
@@ -35,15 +31,13 @@ object UnitStrategy : IPurchasingStrategy {
 
             // Calculate perceived value based on unit stats difference and strategic value
             val statsDifference = (upgradeTo.strength - unit.baseUnit.strength) + 
-                                  (upgradeTo.rangedStrength - unit.baseUnit.rangedStrength)
+                                (upgradeTo.rangedStrength - unit.baseUnit.rangedStrength)
             
+            // Use personality's aggressive and military values for warmonger preference
             val warPreference = (personality[PersonalityValue.Aggressive] + personality[PersonalityValue.Military]) / 10f
             val perceivedValue = statsDifference * strategicMultiplier * (1f + warPreference)
 
-            debugger.appendLine("    Final perceived value: $perceivedValue")
-
             if (PurchaseDecisionEngine.shouldPurchase(perceivedValue.toInt(), upgradeCost, civ.gold, civ)) {
-                debugger.appendLine("    Added to purchase options")
                 purchaseOptions.add(
                     PurchaseOption(
                         type = PurchaseOption.PurchaseType.UnitUpgrade,
@@ -53,30 +47,6 @@ object UnitStrategy : IPurchasingStrategy {
                         action = { unit.upgrade.performUpgrade(upgradeTo, false, upgradeCost) }
                     )
                 )
-            } else {
-                debugger.appendLine("    Rejected by PurchaseDecisionEngine")
-            }
-        }
-
-        // Debug logging before return
-        if (purchaseOptions.isNotEmpty()) {
-            debugger.appendLine("\nUnit Upgrade Options:")
-            val bestOption = purchaseOptions.maxByOrNull { it.baseValue / it.cost }
-            val worstOption = purchaseOptions.minByOrNull { it.baseValue / it.cost }
-            
-            bestOption?.let {
-                debugger.appendLine("  Best: ${it.description}")
-                debugger.appendLine("    Value/Cost: ${it.baseValue}/${it.cost} = ${it.baseValue / it.cost}")
-            }
-            worstOption?.let {
-                debugger.appendLine("  Worst: ${it.description}")
-                debugger.appendLine("    Value/Cost: ${it.baseValue}/${it.cost} = ${it.baseValue / it.cost}")
-            }
-            
-            debugger.appendLine("\nAll Unit Upgrade Options:")
-            purchaseOptions.forEach { option ->
-                debugger.appendLine("  ${option.description}")
-                debugger.appendLine("    Value/Cost: ${option.baseValue}/${option.cost} = ${option.baseValue / option.cost}")
             }
         }
 

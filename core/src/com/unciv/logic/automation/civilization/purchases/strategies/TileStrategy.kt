@@ -5,7 +5,6 @@ import com.unciv.logic.automation.civilization.purchases.core.IPurchasingStrateg
 import com.unciv.logic.automation.civilization.purchases.core.PurchaseDecisionEngine
 import com.unciv.logic.automation.civilization.purchases.core.PurchaseOption
 import com.unciv.logic.automation.civilization.purchases.evaluators.TileEvaluator
-import com.unciv.logic.automation.civilization.purchases.debug.PurchaseDebugger
 import com.unciv.logic.city.City
 import com.unciv.logic.civilization.Civilization
 import com.unciv.logic.map.tile.Tile
@@ -14,7 +13,6 @@ import com.unciv.models.ruleset.nation.PersonalityValue
 import com.unciv.models.stats.Stats
 import com.unciv.logic.city.managers.CityExpansionManager
 import com.unciv.models.stats.Stat
-
 
 /**
  * AI Strategy for purchasing tiles, integrating with CityStats and CityExpansionManager.
@@ -40,53 +38,15 @@ object TileStrategy : IPurchasingStrategy {
     // Cache for tile stats to avoid recalculation during a single evaluation cycle
     private val tileStatsCache = mutableMapOf<Pair<Tile, City>, Stats>()
     private val tileValueCache = mutableMapOf<Tile, Float>()
-    private val debugger = PurchaseDebugger
     
-    override fun evaluatePurchases(
-        civ: Civilization, 
-        personality: Personality
-    ): List<PurchaseOption> {
+    override fun evaluatePurchases(civ: Civilization, personality: Personality): List<PurchaseOption> {
         clearCaches()
-
-        // Start debug session for this strategy
-        debugger.appendLine("\nEvaluating tile purchases for ${civ.civName}:")
-
-        val purchaseOptions = civ.cities
+        
+        return civ.cities
             .asSequence()
             .filter { it.isNormalCity() }
             .flatMap { city -> evaluateCityTiles(city, civ, personality) }
             .toList()
-    
-        // Debug logging before return
-        if (purchaseOptions.isNotEmpty()) {
-            debugger.appendLine("\nTile Purchase Options:")
-            val bestOption = purchaseOptions.maxByOrNull { it.baseValue / it.cost }
-            val worstOption = purchaseOptions.minByOrNull { it.baseValue / it.cost }
-            
-            bestOption?.let {
-                debugger.appendLine("  Best: ${it.description}")
-                debugger.appendLine("    Value/Cost: ${String.format("%.2f", it.baseValue / it.cost)}")
-            }
-            worstOption?.let {
-                debugger.appendLine("  Worst: ${it.description}")
-                debugger.appendLine("    Value/Cost: ${String.format("%.2f", it.baseValue / it.cost)}")
-            }
-            
-            debugger.appendLine("\nAll Tile Options (by city):")
-            purchaseOptions.groupBy { it.description.substringAfterLast(" at ") }
-                .forEach { (location, options) ->
-                    debugger.appendLine("  Location: $location")
-                    options.forEach { option ->
-                        debugger.appendLine("    ${option.description}")
-                        debugger.appendLine("      Value/Cost: ${String.format("%.2f", option.baseValue / option.cost)}")
-                    }
-                }
-        }
-
-        // Add final strategy evaluation before returning
-        debugger.addStrategyEvaluation("TileStrategy", purchaseOptions)
-
-        return purchaseOptions
     }
 
     /**
@@ -99,8 +59,6 @@ object TileStrategy : IPurchasingStrategy {
         personality: Personality
     ): Sequence<PurchaseOption> {
         val expansionManager = city.expansion
-        debugger.appendLine("\nEvaluating tiles for ${city.name}:")
-        
         val workableTilesCount = city.getWorkableTiles().count().toFloat()
         val populationPressure = calculatePopulationPressure(city.population.population, workableTilesCount)
         
@@ -134,8 +92,12 @@ object TileStrategy : IPurchasingStrategy {
         val pathCost = expansionManager.getGoldCostOfTile(tile)
         val tileRank = TileEvaluator.rankTile(tile, civ, personality)
         
+        // Early exit conditions for efficiency
+        if (!PurchaseDecisionEngine.shouldPurchase(tileRank, pathCost, civ.gold, civ)) {
+            return null
+        }
+        
         if (!isTileBetterThanCurrentWorked(city, tile)) {
-            debugger.appendLine("    Rejected: Not better than current worked tile")
             return null
         }
         
@@ -145,14 +107,7 @@ object TileStrategy : IPurchasingStrategy {
             city = city,
             personality = personality,
             populationPressure = populationPressure
-        ) * tileRank
-
-        debugger.appendLine("    Final value calculated: $baseValue")
-
-        if (!PurchaseDecisionEngine.shouldPurchase(baseValue.toInt(), pathCost, civ.gold, civ)) {
-            debugger.appendLine("    Rejected: Failed purchase decision check")
-            return null
-        }
+        )
         
         return PurchaseOption(
             type = PurchaseOption.PurchaseType.Tile,
@@ -194,10 +149,10 @@ object TileStrategy : IPurchasingStrategy {
             val strategicScore = TileEvaluator.evaluateStrategicPosition(tile, civ, personality)
             
             // Combine all components with appropriate weights
-            val combinedValue = (value *  
-                                citySpecificValue * 
-                                statsValue ) * 
-                                (1.0f + strategicScore)
+            val combinedValue = (value * 0.3f + 
+                                citySpecificValue * 0.4f + 
+                                statsValue * 0.3f) * 
+                                (1.0f + strategicScore * 0.2f)
             
             // Apply population pressure modifier for growing cities
             if (populationPressure > 0.8f) {
