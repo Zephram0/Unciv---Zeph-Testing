@@ -24,7 +24,7 @@ object UseGoldAutomation {
         // Initialize debug session with civilization details
         debugger.startNewSession(
             civName = civ.civName,
-            availableGold = civ.gold,
+            gold = civ.gold,
             goldPerTurn = civ.stats.statsForNextTurn.gold
         )
     

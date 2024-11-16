@@ -6,14 +6,18 @@ plugins {
 val gdxVersion: String by project
 val coroutinesVersion: String by project
 val ktorVersion: String by project
-val kotlinVersion: String by project  // Add this line
+val kotlinVersion: String by project
 
 dependencies {
     api("com.badlogicgames.gdx:gdx:$gdxVersion")
     api("com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion")
 
-    // Add this near the top of the dependencies block
-    implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")  // Use same version as Kotlin
+    // Ensure JNA dependencies are exposed to other modules
+    api("net.java.dev.jna:jna:5.14.0")
+    api("net.java.dev.jna:jna-platform:5.14.0")
+
+    // Kotlin Reflect
+    api("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
@@ -36,13 +40,5 @@ dependencies {
     
     // Other dependencies
     implementation("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
-    implementation("net.java.dev.jna:jna:5.13.0")
-    implementation("net.java.dev.jna:jna-platform:5.13.0")
-}
-
-sourceSets {
-    main {
-        java.srcDir("src")
-        resources.srcDir("../android/assets")
-    }
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
 }

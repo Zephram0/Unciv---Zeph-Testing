@@ -81,7 +81,7 @@ class UncivWindowListener : Lwjgl3WindowAdapter() {
          */
         val user32: User32? = try {
             if (System.getProperty("os.name")?.contains("Windows") == true) {
-                Native.load(User32::class.java)
+                Native.loadLibrary("user32", User32::class.java)
             } else {
                 null
             }
