@@ -1,9 +1,27 @@
 plugins {
-    kotlin("multiplatform") version "1.9.21" apply false
+    // Base Kotlin plugins
+    kotlin("jvm") version "1.9.21" apply false
+    kotlin("android") version "1.9.21" apply false
     kotlin("plugin.serialization") version "1.9.21" apply false
+    
+    // Android plugins
     id("com.android.application") version "8.2.2" apply false
     id("com.android.library") version "8.2.2" apply false
+    
+    // Other plugins
     id("io.gitlab.arturbosch.detekt") version "1.23.0" apply false
+}
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.2.2")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.21")
+    }
 }
 
 allprojects {
