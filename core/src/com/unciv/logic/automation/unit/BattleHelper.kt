@@ -63,6 +63,18 @@ object BattleHelper {
         return false
     }
 
+    fun tryDisembarkToSafety(unit: MapUnit): Boolean {
+        if (!unit.baseUnit.isLandUnit || !unit.isEmbarked()) return false
+    
+        // Find nearby enemy cities
+        val nearbyEnemyCity = unit.currentTile.getTilesInDistance(5)
+            .firstOrNull { it.isCityCenter() && it.getOwner()?.isAtWarWith(unit.civ) == true }
+            ?: return false
+    
+        // Reuse HeadTowardsEnemyCityAutomation's landing logic
+        return HeadTowardsEnemyCityAutomation.headToLandingGrounds(nearbyEnemyCity, unit)
+    }
+
     /**
      * Choses the best target in attackableEnemies, this could be a city or a unit.
      */

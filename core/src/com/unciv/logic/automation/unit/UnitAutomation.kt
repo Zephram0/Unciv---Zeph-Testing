@@ -225,6 +225,10 @@ object UnitAutomation {
         // If there are no enemies nearby and we can heal here, wait until we are at full health
         if (unit.health < 100 && canUnitHealInTurnsOnCurrentTile(unit,2, 4)) return
 
+        if (tryCaptureCity(unit)) return
+
+        if (tryMakeSpaceForLanding(unit)) return
+
         if (tryHeadTowardsOurSiegedCity(unit)) return
 
         // if a embarked melee unit can land and attack next turn, do not attack from water.
@@ -234,6 +238,8 @@ object UnitAutomation {
         if (tryAttacking(unit)) return
 
         if (tryTakeBackCapturedCity(unit)) return
+
+        if (BattleHelper.tryDisembarkToSafety(unit)) return
 
         // Focus all units without a specific target on the enemy city closest to one of our cities
         if (HeadTowardsEnemyCityAutomation.tryHeadTowardsEnemyCity(unit)) return
@@ -263,12 +269,80 @@ object UnitAutomation {
             wander(unit, stayInTerritory = true)
     }
 
+    private fun tryCaptureCity(unit: MapUnit): Boolean {
+        if (unit.isCivilian() || !unit.baseUnit.isMelee()) return false
+        
+        val unitDistanceToTiles = unit.movement.getDistanceToTiles()
+        val capturableCities = unit.civ.getKnownCivs()
+            .flatMap { it.cities.asSequence() }
+            .filter { city ->
+                city.health == 1 && 
+                unit.civ.isAtWarWith(city.civ) &&
+                unitDistanceToTiles.containsKey(city.getCenterTile()) &&
+                unitDistanceToTiles[city.getCenterTile()]!!.totalDistance <= unit.currentMovement
+            }
+        
+        val closestCity = capturableCities
+            .minByOrNull { it.getCenterTile().aerialDistanceTo(unit.getTile()) }
+            ?: return false
+            
+        unit.movement.headTowards(closestCity.getCenterTile())
+        return true
+    }
+
 
     /** @return true only if the unit has 0 movement left */
     private fun tryAttacking(unit: MapUnit): Boolean {
         repeat(unit.maxAttacksPerTurn() - unit.attacksThisTurn) {
+            // Early exit checks
+            if (!unit.isMilitary() || unit.currentMovement <= 1) {
+                if (BattleHelper.tryAttackNearbyEnemy(unit)) return true
+                if (unit.health < 50 && tryRetreat(unit)) return true
+                return@repeat
+            }
+            
+            // Get range and attackable enemies once
+            val unitRange = when {
+                unit.baseUnit.isRanged() -> unit.getRange()
+                unit.baseUnit.isMelee() -> 1
+                else -> {
+                    if (BattleHelper.tryAttackNearbyEnemy(unit)) return true
+                    return@repeat
+                }
+            }
+            
+            // Check if repositioning is needed
+            val attackableEnemies = TargetHelper.getAttackableEnemies(unit, unit.movement.getDistanceToTiles())
+            if (attackableEnemies.isEmpty()) return@repeat
+            
+            val closestEnemy = attackableEnemies.minByOrNull { 
+                it.tileToAttackFrom.aerialDistanceTo(it.tileToAttack) 
+            } ?: return@repeat
+            
+            // If too close to enemy, try to reposition first
+            if (unit.currentTile.aerialDistanceTo(closestEnemy.tileToAttack) < unitRange) {
+                // Find safer position at optimal range
+                val maxMovement = unit.currentMovement - 1
+                val possiblePositions = unit.movement.getDistanceToTiles()
+                    .entries
+                    .filter { it.value.totalDistance <= maxMovement }
+                    .map { it.key }
+                    .filter { tile ->
+                        tile.isLand && 
+                        unit.movement.canMoveTo(tile) &&
+                        tile.aerialDistanceTo(closestEnemy.tileToAttack) == unitRange
+                    }
+                
+                val bestPosition = possiblePositions.maxByOrNull { it.getDefensiveBonus() }
+                if (bestPosition != null) {
+                    unit.movement.headTowards(bestPosition)
+                }
+            }
+            
+            // Try to attack from new position
             if (BattleHelper.tryAttackNearbyEnemy(unit)) return true
-            // Calvary style tctic, attack and then retreat
+            
+            // Retreat if needed
             if (unit.health < 50 && tryRetreat(unit)) return true
         }
         return false
@@ -495,6 +569,85 @@ object UnitAutomation {
             unit.movement.headTowards(closestEnemy.tileToAttackFrom)
             return true
         }
+        return false
+    }
+
+    /**
+     * Checks if unit is blocking potential landing zones for embarked units and moves if necessary,
+     * while maintaining combat effectiveness
+     * @param unit The unit to check
+     * @return True if the unit moved to make space, false otherwise
+     */
+    //TODO: move one tile, unless you can't. Then move 2.
+    //TODO: Move to better positioned tiled (like in tryAttacking)
+    private fun tryMakeSpaceForLanding(unit: MapUnit): Boolean {
+        if (unit.isEmbarked() || unit.baseUnit.isWaterUnit) return false
+    
+        // Check if we're blocking a potential landing zone
+        val isBlockingLandingZone = unit.currentTile.isLand && 
+            unit.currentTile.neighbors.any { it.isWater }
+    
+        if (!isBlockingLandingZone) return false
+    
+        // Check for nearby embarked units that need to land
+        val searchRadius = HeadTowardsEnemyCityAutomation.maxDistanceFromCityToConsiderForLandingArea
+        val nearbyEmbarkedUnits = unit.currentTile
+            .getTilesInDistance(searchRadius)
+            .flatMap { it.getUnits() }
+            .filter { it.civ == unit.civ && it.isEmbarked() && it.isMilitary() }
+    
+        if (nearbyEmbarkedUnits.none()) return false
+    
+        // Get all possible non-coastal tiles within movement range
+        val tilesInRange = unit.movement.getDistanceToTiles()
+            .filter { (tile, _) ->
+                tile.isLand &&
+                tile.neighbors.none { it.isWater } &&
+                unit.movement.canMoveTo(tile) &&
+                unit.getDamageFromTerrain(tile) <= 0
+            }
+            .entries
+            .groupBy { it.value.totalDistance }
+            .toSortedMap()
+    
+        // Get attackable enemies to consider for positioning
+        val attackableEnemies = TargetHelper.getAttackableEnemies(unit, unit.movement.getDistanceToTiles())
+        val closestEnemy = attackableEnemies
+            .minByOrNull { it.tileToAttackFrom.aerialDistanceTo(it.tileToAttack) }
+    
+        // For each movement cost group, find the best positioned tile
+        for ((movementCost, tilesWithCost) in tilesInRange) {
+            if (movementCost > unit.currentMovement) break
+    
+            val bestTile = if (closestEnemy != null) {
+                // If we have enemies nearby, position strategically
+                val unitRange = when {
+                    unit.baseUnit.isRanged() -> unit.getRange()
+                    unit.baseUnit.isMelee() -> 1
+                    else -> 5
+                }
+    
+                tilesWithCost
+                    .map { it.key }
+                    .filter { tile ->
+                        val distanceToEnemy = tile.aerialDistanceTo(closestEnemy.tileToAttack)
+                        if (unit.baseUnit.isRanged())
+                            distanceToEnemy == unitRange
+                        else
+                            distanceToEnemy > 1
+                    }
+                    .minByOrNull { it.aerialDistanceTo(closestEnemy.tileToAttackFrom) }
+            } else {
+                // If no enemies nearby, just pick the first valid tile
+                tilesWithCost.firstOrNull()?.key
+            }
+    
+            if (bestTile != null) {
+                unit.movement.moveToTile(bestTile)
+                return true
+            }
+        }
+    
         return false
     }
 

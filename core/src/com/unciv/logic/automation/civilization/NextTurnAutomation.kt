@@ -475,19 +475,36 @@ object NextTurnAutomation {
 
     /** Returns the priority of the unit, a lower value is higher priority **/
     fun getUnitPriority(unit: MapUnit, isAtWar: Boolean): Int {
+        // Keep existing civilian and air unit priorities
         if (unit.isCivilian() && !unit.isGreatPersonOfType("War")) return 1 // Civilian
         if (unit.baseUnit.isAirUnit()) return when {
-            unit.canIntercept() -> 2 // Fighers first
+            unit.canIntercept() -> 2 // Fighters first
             unit.isNuclearWeapon() -> 3 // Then Nukes (area damage)
             !unit.hasUnique(UniqueType.SelfDestructs) -> 4 // Then Bombers (reusable)
             else -> 5 // Missiles
         }
+
         val distance = if (!isAtWar) 0 else unit.civ.threatManager.getDistanceToClosestEnemyUnit(unit.getTile(),6)
-        // Lower health units should move earlier to swap with higher health units
-        return distance + (unit.health / 10) + when {
-            unit.baseUnit.isRanged() -> 10
-            unit.baseUnit.isMelee() -> 30
-            unit.isGreatPersonOfType("War") -> 100 // Generals move after military units
+        val baseScore = distance + (unit.health / 10)
+
+        // Handle embarked units with lower priority than naval units
+        if (unit.isEmbarked()) return baseScore + 50  // Ensure embarked units move after all naval units
+
+        // Water units move before embarked units
+        if (unit.baseUnit.isWaterUnit) {
+            return baseScore + when {
+                unit.baseUnit.isRanged() -> 35  // Naval ranged units
+                unit.baseUnit.isMelee() -> 15   // Naval melee units
+                unit.hasUnique(UniqueType.CarryAirUnits) -> 45  // Carriers
+                else -> 40  // Other naval units
+            }
+        }
+
+        // Then handle land units
+        return baseScore + when {
+            unit.baseUnit.isRanged() -> 30
+            unit.baseUnit.isMelee() -> 10
+            unit.isGreatPersonOfType("War") -> 100 // Generals move last
             else -> 1
         }
     }

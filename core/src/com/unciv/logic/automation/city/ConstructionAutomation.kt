@@ -28,6 +28,7 @@ import com.unciv.models.stats.Stats
 import com.unciv.ui.screens.cityscreen.CityScreen
 import kotlin.math.max
 import kotlin.math.sqrt
+import com.unciv.logic.map.tile.RoadStatus
 
 class ConstructionAutomation(val cityConstructions: CityConstructions) {
 
@@ -271,14 +272,96 @@ class ConstructionAutomation(val cityConstructions: CityConstructions) {
                         && Automation.allowAutomatedConstruction(civInfo, city, it)
             }.filterBuildable()
         if (workerEquivalents.none()) return // for mods with no worker units
+    
+        // Count unimproved resource tiles and total unimproved tiles
+        var unimprovedResourceTiles = 0
+        var totalUnimprovedTiles = 0
+    
+        for (city in civInfo.cities) {
+            city.getTiles().forEach { tile ->
+                if (tile.isLand && tile.getUnits().none { it.cache.hasUniqueToBuildImprovements }) {
+                    if (tile.isPillaged() || tileHasWorkToDo(tile)) {
+                        totalUnimprovedTiles++
+                        if (tile.resource != null && !tile.providesResources(civInfo)) {
+                            unimprovedResourceTiles++
+                        }
+                    }
+                }
+            }
+        }
+    
+        // Calculate workers wanted based on game phase
+        val workersWanted = when {
+            cities <= 3 -> maxOf(
+                unimprovedResourceTiles.toFloat(),  // Prioritize resource tiles in early game
+                minOf(totalUnimprovedTiles.toFloat(), cities * 2f)  // Limit workers based on city count
+            )
+            else -> minOf(
+                (totalUnimprovedTiles / 1.5f),  // Efficient ratio in mid/late game
+                cities * 0.5f  // Upper limit based on number of cities
+            )
+        }
 
-        // Dedicate 1.5 workers for the first 5 cities, from then on only build one worker for every city.
-        val numberOfWorkersWeWant = if (cities <= 5) (cities * 1.5f) else 7.5f + ((cities - 5))
+        // Optimize existing workers
+        val currentWorkers = civInfo.units.getCivUnits().filter { unit -> 
+            unit.hasUnique(UniqueType.BuildImprovements)
+        }
+        val excessWorkers = currentWorkers.count() - workersWanted.toInt()
 
-        if (workers < numberOfWorkersWeWant) {
-            val modifier = numberOfWorkersWeWant / (workers + 0.4f) // The worse our worker to city ratio is, the more desperate we are
+        if (excessWorkers > 0) {
+            // Find idle workers using existing automation criteria
+            val idleWorkers = currentWorkers.filter { worker ->
+                val currentTile = worker.getTile()
+                val workableTiles = currentTile.getTilesInDistance(4)
+                    .none { tile ->
+                        tile.isLand && 
+                        tile.getUnits().none { it.cache.hasUniqueToBuildImprovements } &&
+                        (tile.isPillaged() || tileHasWorkToDo(tile))
+                    }
+                workableTiles
+            }
+
+            // Disband excess idle workers
+            idleWorkers.take(excessWorkers).forEach { worker ->
+                worker.disband()
+            }
+        }
+    
+        // Economic considerations
+        if (civInfo.stats.statsForNextTurn.gold < 0 && workers >= cities) return
+    
+        if (workers < workersWanted) {
+            // Base modifier calculation based on desired worker ratio
+            var modifier = workersWanted / (workers + 0.4f)  // The worse our worker-to-city ratio is, the more desperate we are
+    
+            // Additional modifiers based on tile assessments
+            val tilesPerWorker = totalUnimprovedTiles / (workers + 1)
+            modifier *= when {
+                tilesPerWorker > 3 -> 1.2f  // High priority if many tiles need improvement
+                tilesPerWorker < 1 -> 0.5f  // Low priority if few tiles need improvement
+                else -> 1.0f
+            }
+    
+            // Economic modifiers
+            modifier *= when {
+                civInfo.gold < 0 -> 0.5f  // Reduce priority if losing gold
+                civInfo.gold < civInfo.cities.size * 2 -> 0.75f  // Reduce priority if low on gold
+                civInfo.stats.statsForNextTurn.gold < 0 -> 0.9f  // Slightly reduce priority if trending negative
+                civInfo.stats.statsForNextTurn.gold > civInfo.cities.size * 2 -> 1.1f  // Increase priority if wealthy
+                else -> 1.0f
+            }
+    
             addChoice(relativeCostEffectiveness, workerEquivalents.minByOrNull { it.cost }!!.name, modifier)
         }
+    }
+    
+    private fun tileHasWorkToDo(tile: Tile): Boolean {
+        return tile.isLand && (
+            tile.improvement == null ||
+            tile.isPillaged() ||
+            (tile.improvement != null && tile.getTileImprovement()!!.isRoad() &&
+             tile.roadStatus != RoadStatus.Railroad)  // Changed from Constants.modernRoad to RoadStatus.Railroad
+        )
     }
 
     private fun addSpaceshipPartChoice() {

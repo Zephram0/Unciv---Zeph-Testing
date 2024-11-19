@@ -8,6 +8,7 @@ import com.unciv.logic.city.City
 import com.unciv.logic.map.mapunit.MapUnit
 import com.unciv.logic.map.mapunit.movement.PathsToTilesWithinTurn
 import com.unciv.logic.map.tile.Tile
+import com.unciv.logic.map.MapPathing
 
 object HeadTowardsEnemyCityAutomation {
 
@@ -50,8 +51,8 @@ object HeadTowardsEnemyCityAutomation {
     }
 
 
-    private const val maxDistanceFromCityToConsiderForLandingArea = 5
-    private const val minDistanceFromCityToConsiderForLandingArea = 3
+    internal const val maxDistanceFromCityToConsiderForLandingArea = 5
+    internal const val minDistanceFromCityToConsiderForLandingArea = 1
 
     /** @returns whether the unit has taken this action */
     fun headTowardsEnemyCity(
@@ -108,17 +109,113 @@ object HeadTowardsEnemyCityAutomation {
                 || city.health / (expectedDamagePerTurn - cityHealingPerTurn) > 5) // Can damage, but will take more than 5 turns
     }
 
-    private fun headToLandingGrounds(closestReachableEnemyCity: Tile, unit: MapUnit): Boolean {
-        // don't head straight to the city, try to head to landing grounds -
-        // this is against tha AI's brilliant plan of having everyone embarked and attacking via sea when unnecessary.
-        val tileToHeadTo = closestReachableEnemyCity.getTilesInDistanceRange(minDistanceFromCityToConsiderForLandingArea..maxDistanceFromCityToConsiderForLandingArea)
-            .filter { it.isLand && unit.getDamageFromTerrain(it) <= 0 } // Don't head for hurty terrain
-            .sortedBy { it.aerialDistanceTo(unit.currentTile) }
-            .firstOrNull { (unit.movement.canMoveTo(it) || it == unit.currentTile) && unit.movement.canReach(it) }
+    /**
+     * Evaluates if a landing spot is safe for EMBARKED units based on naval threats.
+     * 
+     * @param tile The potential landing tile to evaluate
+     * @param unit The unit attempting to land
+     * @return True if the landing spot is deemed safe, false otherwise
+     */
 
-        if (tileToHeadTo != null) { // no need to worry, keep going as the movement alg. says
-            unit.movement.headTowards(tileToHeadTo)
+     //TODO: Adjust so units will still move to tile if they are already under threat; don't avoid moving if all tiles to move to are also under threat.
+     internal fun isSafeLandingSpot(tile: Tile, unit: MapUnit): Boolean {
+        val wouldBeEmbarked = !tile.isLand || !unit.movement.canMoveTo(tile)
+        if (!wouldBeEmbarked) return true
+        
+        val navySearchRadius = 8
+        val tilesInRange = tile.getTilesInDistance(navySearchRadius)
+            .filter { it.isVisible(unit.civ) }
+            .toList()
+            
+        if (tilesInRange.isEmpty()) return false
+        
+        // Get all units and cities in range once
+        val allUnits = tilesInRange.flatMap { it.getUnits() }.groupBy { it.getTile() }
+        val nearbyEnemyCity = tilesInRange.firstOrNull { threatTile ->
+            threatTile.isCityCenter() && 
+            threatTile.getOwner()?.isAtWarWith(unit.civ) == true && 
+            threatTile.aerialDistanceTo(tile) <= 3
         }
+        
+        // Partition units by allegiance and military status at once
+        val (enemyMilitary, friendlyMilitary) = allUnits.values
+            .flatten()
+            .filter { it.isMilitary() }
+            .partition { it.civ != unit.civ }
+        
+        // Count threats within range
+        val militaryUnitCount = enemyMilitary.count { enemyUnit ->
+            enemyUnit.getTile().aerialDistanceTo(tile) <= enemyUnit.getRange()
+        }
+        
+        // Process friendly units (only check high health)
+        val healthyFriendlyUnits = friendlyMilitary.filter { it.health > 80 }
+        val (navalSupport, otherSupport) = healthyFriendlyUnits.partition { it.baseUnit.isWaterUnit }
+        val highHealthNavalSupport = navalSupport.size
+        val highHealthOtherSupport = otherSupport.count { !it.isEmbarked() }
+        
+        // Early exit if we don't have minimum required support
+        if (highHealthNavalSupport < 1 || (highHealthNavalSupport + highHealthOtherSupport) < 3) return false
+        
+        // If no city nearby, just check military threats
+        if (nearbyEnemyCity == null) return militaryUnitCount == 0
+        
+        // Check military ratio near enemy city using already collected units
+        val tilesNearCity = nearbyEnemyCity.getTilesInDistance(3).toSet()
+        val enemyMilitaryNearCity = enemyMilitary.count { it.getTile() in tilesNearCity }
+        val friendlyMilitaryNearCity = friendlyMilitary.count { it.getTile() in tilesNearCity }
+        
+        return friendlyMilitaryNearCity > enemyMilitaryNearCity * 3 || militaryUnitCount <= 1
+    }
+
+    /**
+     * Finds and moves towards safe landing grounds near the target city.
+     * Prevents unnecessary naval approaches when land routes are available.
+     * 
+     * @param closestReachableEnemyCity The target enemy city tile
+     * @param unit The unit seeking landing grounds
+     * @return True if a landing spot was found and movement initiated
+     */
+    internal fun headToLandingGrounds(closestReachableEnemyCity: Tile, unit: MapUnit): Boolean {
+        // 1. Get potential landing tiles within strategic range of the city
+        val landingSpot = closestReachableEnemyCity
+            .getTilesInDistanceRange(minDistanceFromCityToConsiderForLandingArea..maxDistanceFromCityToConsiderForLandingArea)
+            .filter { tile -> 
+                // 2. Basic landing requirements
+                tile.isLand && 
+                unit.getDamageFromTerrain(tile) <= 0 &&
+                // 3. Check for threats and support
+                isSafeLandingSpot(tile, unit) &&
+                // 4. Verify water path exists from current position to landing spot
+                MapPathing.getConnection(
+                    unit.civ,
+                    unit.currentTile,
+                    tile,
+                    { civ, pathTile -> 
+                        (pathTile.isWater || pathTile == tile) && // Allow the destination land tile
+                        !pathTile.isImpassible() &&
+                        civ.hasExplored(pathTile)
+                    }
+                ) != null &&
+                // 5. Verify land path exists from landing spot to city
+                MapPathing.getConnection(
+                    unit.civ,
+                    tile,
+                    closestReachableEnemyCity,
+                    { civ, pathTile -> 
+                        pathTile.isLand && 
+                        !pathTile.isImpassible() && 
+                        civ.hasExplored(pathTile)
+                    }
+                ) != null
+            }
+            
+            // 6. Choose closest valid spot
+            .minByOrNull { it.aerialDistanceTo(unit.currentTile) }
+            ?: return false
+    
+        // 7. Move towards chosen landing spot
+        unit.movement.headTowards(landingSpot)
         return true
     }
 
