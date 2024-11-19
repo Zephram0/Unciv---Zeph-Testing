@@ -178,40 +178,51 @@ object HeadTowardsEnemyCityAutomation {
      */
     internal fun headToLandingGrounds(closestReachableEnemyCity: Tile, unit: MapUnit): Boolean {
         // 1. Get potential landing tiles within strategic range of the city
-        val landingSpot = closestReachableEnemyCity
+        val candidateTiles = closestReachableEnemyCity
             .getTilesInDistanceRange(minDistanceFromCityToConsiderForLandingArea..maxDistanceFromCityToConsiderForLandingArea)
             .filter { tile -> 
                 // 2. Basic landing requirements
+                tile.isCoastalTile() &&
                 tile.isLand && 
                 unit.getDamageFromTerrain(tile) <= 0 &&
                 // 3. Check for threats and support
-                isSafeLandingSpot(tile, unit) &&
-                // 4. Verify water path exists from current position to landing spot
-                MapPathing.getConnection(
-                    unit.civ,
-                    unit.currentTile,
-                    tile,
-                    { civ, pathTile -> 
-                        (pathTile.isWater || pathTile == tile) && // Allow the destination land tile
-                        !pathTile.isImpassible() &&
-                        civ.hasExplored(pathTile)
-                    }
-                ) != null &&
-                // 5. Verify land path exists from landing spot to city
-                MapPathing.getConnection(
-                    unit.civ,
-                    tile,
-                    closestReachableEnemyCity,
-                    { civ, pathTile -> 
-                        pathTile.isLand && 
-                        !pathTile.isImpassible() && 
-                        civ.hasExplored(pathTile)
-                    }
-                ) != null
+                unit.movement.canMoveTo(tile) &&
+                isSafeLandingSpot(tile, unit)
             }
             
-            // 6. Choose closest valid spot
-            .minByOrNull { it.aerialDistanceTo(unit.currentTile) }
+        // 4. Find tiles with valid water path
+        val tilesWithWaterPath = candidateTiles.filter { tile ->
+            MapPathing.getConnection(
+                unit.civ,
+                unit.currentTile,
+                tile,
+                { civ, pathTile -> 
+                    (pathTile.isWater || pathTile == tile) && 
+                    !pathTile.isImpassible() &&
+                    civ.hasExplored(pathTile) &&
+                    unit.movement.canMoveTo(pathTile)
+                }
+            ) != null
+        }
+        if (tilesWithWaterPath.none()) return false
+        
+        // 5. Find tiles with valid land path to city
+        val tilesWithBothPaths = tilesWithWaterPath.filter { tile ->
+            MapPathing.getConnection(
+                unit.civ,
+                tile,
+                closestReachableEnemyCity,
+                { civ, pathTile -> 
+                    pathTile.isLand && 
+                    !pathTile.isImpassible() && 
+                    civ.hasExplored(pathTile)
+                }
+            ) != null
+        }
+        if (tilesWithBothPaths.none()) return false
+        
+        // 6. Choose closest valid spot
+        val landingSpot = tilesWithBothPaths.minByOrNull { it.aerialDistanceTo(unit.currentTile) }
             ?: return false
     
         // 7. Move towards chosen landing spot

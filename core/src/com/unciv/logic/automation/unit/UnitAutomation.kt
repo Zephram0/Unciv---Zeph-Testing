@@ -225,7 +225,8 @@ object UnitAutomation {
         // If there are no enemies nearby and we can heal here, wait until we are at full health
         if (unit.health < 100 && canUnitHealInTurnsOnCurrentTile(unit,2, 4)) return
 
-        if (tryCaptureCity(unit)) return
+        //May have misunderstood if this is necessary given BattleHelper.getCityAttackValue   
+        //if (tryCaptureCity(unit)) return
 
         if (tryMakeSpaceForLanding(unit)) return
 
@@ -269,6 +270,7 @@ object UnitAutomation {
             wander(unit, stayInTerritory = true)
     }
 
+    //TODO: Needs visibility - otherwise cheating
     private fun tryCaptureCity(unit: MapUnit): Boolean {
         if (unit.isCivilian() || !unit.baseUnit.isMelee()) return false
         
@@ -276,18 +278,20 @@ object UnitAutomation {
         val capturableCities = unit.civ.getKnownCivs()
             .flatMap { it.cities.asSequence() }
             .filter { city ->
-                city.health == 1 && 
+                city.health < unit.health && 
                 unit.civ.isAtWarWith(city.civ) &&
                 unitDistanceToTiles.containsKey(city.getCenterTile()) &&
-                unitDistanceToTiles[city.getCenterTile()]!!.totalDistance <= unit.currentMovement
+                unit.movement.canMoveTo(city.getCenterTile())
             }
         
         val closestCity = capturableCities
             .minByOrNull { it.getCenterTile().aerialDistanceTo(unit.getTile()) }
             ?: return false
+
+        return HeadTowardsEnemyCityAutomation.tryHeadTowardsEnemyCity(unit)
             
-        unit.movement.headTowards(closestCity.getCenterTile())
-        return true
+        //unit.movement.moveToTile(closestCity.getCenterTile())
+        //return true
     }
 
 

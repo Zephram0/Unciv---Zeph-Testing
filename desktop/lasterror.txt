@@ -1,9 +1,9 @@
-java.lang.Exception: Can't reach this tile!
-	at com.unciv.logic.map.mapunit.movement.PathsToTilesWithinTurn.getPathToTile(UnitMovement.kt:850)
-	at com.unciv.logic.map.mapunit.movement.UnitMovement.moveToTile(UnitMovement.kt:431)
-	at com.unciv.logic.map.mapunit.movement.UnitMovement.moveToTile$default(UnitMovement.kt:397)
-	at com.unciv.logic.automation.unit.BattleHelper.tryDisembarkToSafety(BattleHelper.kt:88)
-	at com.unciv.logic.automation.unit.UnitAutomation.automateUnitMoves(UnitAutomation.kt:228)
+com.unciv.logic.map.mapunit.movement.UnitMovement$UnreachableDestinationException: Composite Bowman - Celts Tile @(20.0,13.0), Coast, Composite Bowman - Celts cannot reach Tile @(16.0,11.0), Tundra, Hill, {2} {Uranium}, Mine
+	at com.unciv.logic.map.mapunit.movement.UnitMovement.getTileToMoveToThisTurn(UnitMovement.kt:224)
+	at com.unciv.logic.map.mapunit.movement.UnitMovement.headTowards(UnitMovement.kt:251)
+	at com.unciv.logic.automation.unit.HeadTowardsEnemyCityAutomation.headToLandingGrounds$core(HeadTowardsEnemyCityAutomation.kt:226)
+	at com.unciv.logic.automation.unit.BattleHelper.tryDisembarkToSafety(BattleHelper.kt:75)
+	at com.unciv.logic.automation.unit.UnitAutomation.automateUnitMoves(UnitAutomation.kt:243)
 	at com.unciv.logic.automation.civilization.NextTurnAutomation.automateUnits(NextTurnAutomation.kt:429)
 	at com.unciv.logic.automation.civilization.NextTurnAutomation.automateCivMoves(NextTurnAutomation.kt:78)
 	at com.unciv.logic.automation.civilization.NextTurnAutomation.automateCivMoves$default(NextTurnAutomation.kt:38)
