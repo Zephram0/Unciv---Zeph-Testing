@@ -1,0 +1,1 @@
+Create list of advanced AI algorithms that can be implemented in the future with examples of how they can be used in AAutoExpert. - Remove from .cursorrules.

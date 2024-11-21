@@ -11,6 +11,7 @@ import com.unciv.ui.popups.AnimatedMenuPopup
 import com.unciv.ui.screens.worldscreen.WorldScreen
 import com.unciv.ui.screens.worldscreen.unit.AutoPlay
 import com.unciv.utils.Concurrency
+import com.unciv.logic.aautoexpert.AAutoExpert
 
 /**
  *  The "context" menu for the AutoPlay button
@@ -38,6 +39,22 @@ class AutoPlayMenu(
         table.add(getButton("AutoPlay Military Once", KeyboardBinding.AutoPlayMenuMilitary, ::autoPlayMilitary)).row()
         table.add(getButton("AutoPlay Civilians Once", KeyboardBinding.AutoPlayMenuCivilians, ::autoPlayCivilian)).row()
         table.add(getButton("AutoPlay Economy Once", KeyboardBinding.AutoPlayMenuEconomy, ::autoPlayEconomy)).row()
+
+        // Add to the createContentTable() function after the existing buttons
+        table.add(getButton("Auto Expert Turn", KeyboardBinding.AutoPlayMenuEndTurn) {
+            val endTurnFunction = {
+                nextTurnButton.update()
+                AAutoExpert.startTurn(worldScreen)
+                worldScreen.nextTurn()
+            }
+
+            if (worldScreen.viewingCiv.units.getCivUnitsSize() + worldScreen.viewingCiv.cities.size >= 30) {
+                autoPlay.runAutoPlayJobInNewThread("AutoExpertTurn", worldScreen, false, endTurnFunction)
+            } else {
+                autoPlay.autoPlayTurnInProgress = true
+                endTurnFunction()
+            }
+        }).row()
 
         return table
     }
