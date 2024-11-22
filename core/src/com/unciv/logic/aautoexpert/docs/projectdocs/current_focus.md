@@ -6,7 +6,7 @@
 >
 > This is a living document that must be updated and organized at the start and end of each development session:
 >
-> 1. REQUIRED: Under "Active Task" - Document/Update task name, priority, status, and implementation goals with links to external codebase files and functions.
+> 1. REQUIRED: Under "Active Task" - Document/Update task name, task description, implementation goals, and component tasks and subtasks with links to external codebase files and functions.
 > 2. REQUIRED: Under "Current Implementation Goals" - List/Update and optimal coding order primary objectives, with each goal's completion criteria and dependencies.
 > 3. REQUIRED: Under "Immediate Tasks" - Track all tasks with checkboxes [ ] unstarted, [-] started, [✓] completed; unfinished tasks have % complete and required subtasks to complete.
 > 4. REQUIRED: Under "Integration Points" - Update connections to external codebase modules, including hooks, triggers, and scope.
@@ -16,12 +16,11 @@
 > All updates MUST cross-reference `road_map.md` for task alignment and `project_overview.md` for goal and phase alignment.
 
 ## 1. Active Task: Separating Military Control from Base Automation
-> Represents the current primary development focus, detailing the specific component or functionality being implemented or modified, along with its priority level and current status.
-**Priority: High**
-**Status: In Progress**
+> Represents the current primary development focus, detailing the specific component or functionality being implemented or modified. This section focuses on technical implementation details and concrete codebase elements, representing the specific component/functionality being implemented.
 
 ### 1.1 Current Implementation Goals
 > Current Implementation Goals outline the specific objectives and deliverables for the Active Task, organized in priority order with clear completion criteria and dependencies.
+
 1. **Military Module Independence**
    - Remove dependency on `NextTurnAutomation` for military units
    - Implement custom unit handling logic
@@ -40,6 +39,7 @@
 
 ### 1.2 Immediate Tasks
 > Immediate Tasks track granular development activities with checkboxes and progress indicators, referencing specific files and functions that require modification or implementation.
+
 1. **Modify `executeTurn` in AAutoExpert.kt**
    - [x] Initial implementation of `executeTurn` in `AAutoExpert.kt`
    - [ ] Remove `NextTurnAutomation.automateCivMoves` call (Long-term goal)
@@ -72,6 +72,7 @@
 
 ## 2. Integration Points
 > Integration Points document the connections between the current focus and external codebase modules, specifying hooks, triggers, and scope of integration to ensure proper system interaction.
+
 1. **Turn Processing**
    - **Hook:** `AAutoExpert.executeTurn()`
    - **Trigger:** "Auto Expert Turn" button
@@ -221,6 +222,7 @@
 
 ## 4. Next Steps
 >The following steps outline the planned development phases and tasks that align with the project `road_map.md`, focusing on implementing core functionality while maintaining consistency with the overall architectural vision and project goals in `project_overview.md`.
+
 1. **Finalize Melee Unit Logic**
    - Implement combat and movement strategies.
    - Test melee unit interactions in various scenarios.

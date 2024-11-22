@@ -6,13 +6,13 @@
 >
 > This is a living document that must be updated and reorganized whenever architectural changes are made. For all implementations:
 >
-> 1. REQUIRED: **System Architecture** - Update module implementations, data flows, and file structures to match `aautoexpert/` directory structure, `road_map.md#Planned-Project-Structure` and reference active development in `current_focus.md#Active-Task`.
+> 1. REQUIRED: **System Architecture** - Update to accurately reflect current `aautoexpert/` directory structure.
 > 2. REQUIRED: **Project Architecture** - Document design decisions and technical specifications aligned with `project_overview.md#Current-Technical-Architecture-Status` and current module implementations.
-> 3. REQUIRED: **Technical Implementation** - Detail implementation strategies that reflect current patterns in the codebase and `aautoexpert/modules/`; align with `current_focus.md#Implementation-Goals`.
+> 3. REQUIRED: **Technical Implementation** - Detail implementation strategies that reflect current patterns in the codebase and `aautoexpert/modules/`.
 > 4. REQUIRED: **Development Patterns** - Maintain coding standards and critical patterns found in the external codebase and `aautoexpert/patterns/` and support the module structure in `aautoexpert/`.
 > 5. REQUIRED: **Integration Reference** - Document integration points and module interactions based on current implementations in `aautoexpert/modules/` and planned integrations from `road_map.md`.
 >
-> All architectural changes MUST maintain consistency with project goals in `project_overview.md` and development phases in `road_map.md`, while accurately reflecting the current state of the `aautoexpert/` codebase.
+> All architectural changes MUST reflect actual structure of `aautoexpert/` and maintain consistency with project goals in `project_overview.md` and development plans in `road_map.md`.
 
 
 ## 1. System Architecture
