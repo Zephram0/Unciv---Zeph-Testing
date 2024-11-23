@@ -4,293 +4,420 @@
 
 > **Architecture Documentation Requirements**
 >
-> This is a living document that must be updated and reorganized whenever architectural changes are made. For all implementations:
+> This document should be updated when:
 >
-> 1. REQUIRED: **System Architecture** - Update to accurately reflect current `aautoexpert/` directory structure.
-> 2. REQUIRED: **Project Architecture** - Document design decisions and technical specifications aligned with `project_overview.md#Current-Technical-Architecture-Status` and current module implementations.
-> 3. REQUIRED: **Technical Implementation** - Detail implementation strategies that reflect current patterns in the codebase and `aautoexpert/modules/`.
-> 4. REQUIRED: **Development Patterns** - Maintain coding standards and critical patterns found in the external codebase and `aautoexpert/patterns/` and support the module structure in `aautoexpert/`.
-> 5. REQUIRED: **Integration Reference** - Document integration points and module interactions based on current implementations in `aautoexpert/modules/` and planned integrations from `road_map.md`.
+> 1. **New Modules Added/Changed**: When new folders or `.kt` files are added or changed in `aautoexpert/`, document:
+>    - Module's purpose and responsibilities
+>    - Key interfaces and classes
+>    - Integration points with existing modules
 >
-> All architectural changes MUST reflect actual structure of `aautoexpert/` and maintain consistency with project goals in `project_overview.md` and development plans in `road_map.md`.
+> 2. **Major Structural Changes**: When relevant section in `.kt` files or folders in `aautoexpert/` file structure do not match this document:
+>    - Update relevant architecture diagrams
+>    - Document new data flows
+>    - Note any deprecated patterns
+>
+> 3. **Integration Changes**: When modifying how AAutoExpert interfaces with the base game:
+>    - Document new integration points
+>    - Update external module dependencies
+>    - Note any breaking changes
+>
+> This document MUST reflect the current folders and .kt files in the file structure of `aautoexpert/` and NOT future plans. Future plans belong in `road_map.md`.
 
+## Current Project Structure
+```
+aautoexpert/
+├── AAutoExpert.kt                # Main entry point
+├── modules/
+│   ├── military/                 # Military decision making
+│   │   └── MilitaryModule.kt
+│   └── core/                     # Shared utilities
+│       └── AIModule.kt           # Base interface
+```
 
-## 1. System Architecture
+## Table of Contents
 
-### 1.1 Current Implementation
+1. [Core Architecture](#1-core-architecture)
+   1.1 [Integration with Unciv](#11-integration-with-unciv)
+   1.2 [Decision Making Pipeline](#12-decision-making-pipeline)
+   1.3 [Module System](#13-module-system)
+2. [Current Implementation](#2-current-implementation)
+   2.1 [Military Module](#21-military-module)
+   2.2 [Core Systems](#22-core-systems)
+   2.3 [Testing Framework](#23-testing-framework)
+3. [Extension Points](#3-extension-points)
+   3.1 [Adding New Modules](#31-adding-new-modules)
+   3.2 [Extending Existing Modules](#32-extending-existing-modules)
+   3.3 [Testing Requirements](#33-testing-requirements)
+4. [Module Dependencies](#4-module-dependencies)
+   4.1 [Core Dependencies](#41-core-dependencies)
+   4.2 [Integration Dependencies](#42-integration-dependencies)
+5. [Performance and Optimization](#5-performance-and-optimization)
+   5.1 [Optimization Strategies](#51-optimization-strategies)
+   5.2 [Resource Management](#52-resource-management)
+   5.3 [Performance Monitoring](#53-performance-monitoring)
+6. [Development Workflow](#6-development-workflow)
+   6.1 [Module Development](#61-module-development)
+   6.2 [Integration Process](#62-integration-process)
+   6.3 [Version Control Practices](#63-version-control-practices)
 
-- **Active Modules and Responsibilities**
-  - **Core Module**: Provides shared utilities and base interfaces.
-  - **Military Module**: Handles military decision-making and unit control.
-  - **Battle Helper**: Assists with battle-related operations and combat calculations.
+---
 
-- **Current Data Flow**
-  1. **Game State Input**
-     - The AI receives civilization state through `AAutoExpert.executeTurn()`.
-  2. **Module Processing**
-     - Military module processes units by type (air, water, land).
-     - Units are prioritized based on type and situation.
-  3. **Decision Making**
-     - Currently implementing unit-specific decision making.
-     - Separate handlers for different unit types.
-  4. **Action Execution**
-     - Direct unit control through MilitaryModule.
-     - Separate from base game automation.
-  5. **State Updates**
-     - Executed actions result in updates to the game state.
+## 1. Core Architecture
 
-- **Current File Structure with Paths from aautoexpert/**
-    aautoexpert/
-    ├── AAutoExpert.kt                # Main entry point
-    ├── modules/
-    │   ├── military/                 # Military decision making
-    │   │   └── MilitaryModule.kt
-    │   └── core/                     # Shared utilities
-    │       └── AIModule.kt           # Base interface
+### 1.1 Integration with Unciv
 
+- **Turn System Hook**
+  - **Path:** `core/src/com/unciv/logic/aautoexpert/AAutoExpert.kt`
+  ```kotlin:path/to/Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/AAutoExpert.kt
+  fun startTurn(worldScreen: WorldScreen) {
+      val civInfo = worldScreen.viewingCiv
+      // Trigger AI turn processing
+      executeTurn(civInfo)
+  }
+  ```
+  - **Description:** AAutoExpert hooks into Unciv's turn system by overriding the `startTurn` method. It accesses the current civilization's state and initiates the AI's turn processing through `executeTurn`.
 
-- **Integration Points with Base Game**
-  - Integrates with Unciv's game state and unit management systems.
-  - Utilizes observer patterns to listen for game state changes.
-
-### 1.2 Module Interactions
-
-- **Integration Roadmap**
-  - Phase 1: Implement Economy Module.
-  - Phase 2: Develop Diplomacy Module.
-  - Phase 3: Integrate new modules with existing system.
-  - Phase 4: Optimize data flows and performance across all modules.
-
-  #### 1.2.1 Military Module 
-
-- **Military Module ↔ Battle Helper:**
-  - The Military Module relies on the Battle Helper for executing attacks and evaluating combat scenarios.
-  - Example: Calling `BattleHelper.tryAttackNearbyEnemy` within `handleRangedUnit`.
-
-
-## 2. Project Architecture
-  
-### 2.1 Overview
-
-The Unciv AI Expert project follows a modular architecture to ensure scalability, maintainability, and ease of development. Each module is responsible for specific aspects of the AI's functionality.
-
-### 2.2 AAutoExpert Project Modules
-
-#### 2.2.1 AAutoExpert Current Modules
-
-##### 2.2.1.1 Military Module
-
-**Path:** `core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt`
-
-**Responsibilities:**
-- Handles decision-making for military units, including ranged, melee, naval, and air units.
-- Manages unit classification and priority.
-- Integrates with battle utilities to execute attacks and evaluate positions.
-
-**Key Components:**
-- **Unit Handlers:** Functions like `handleRangedUnit`, `handleMeleeUnit`, etc.
-- **Battle Integration:** Utilizes `BattleHelper` for attack operations.
-
-**Data Flow**
-1. **Unit Decision:** The Military Module processes each unit's actions based on priority and type.
-2. **Battle Execution:** When an attack is needed, the Military Module delegates to the Battle Helper.
-3. **Outcome Handling:** Post-battle outcomes are managed and updated within the Military Module.
-
-#### 2.2.2 AAutoExpert Planned Project Modules
-
-##### 2.2.2.1 Economy Module
-
-- **Path:** `core/src/com/unciv/logic/aautoexpert/modules/economy/ExpertEconomyModule.kt`
-
-- **Responsibilities**
-  - Manages city and resource-related decisions.
-  - Handles economic strategies and resource allocation.
-
-- **Key Components**
-  - **City Handlers:** `ExpertCityHandler.kt`
-  - **Trade Handlers:** `ExpertTradeHandler.kt`
-  - **Worker Handlers:** `ExpertWorkerHandler.kt`
-  - **Economic Calculations:** `ExpertEconCalc.kt`
-
-##### 2.2.2.2 Diplomacy Module
-
-- **Path:** `core/src/com/unciv/logic/aautoexpert/modules/diplomacy/ExpertDiplomacyModule.kt`
-
-- **Responsibilities**
-  - Manages inter-civilization relations and diplomatic actions.
-  - Handles treaties and relationship dynamics.
-
-- **Key Components**
-  - **Treaty Handlers:** `ExpertTreatyHandler.kt`
-  - **Relations Handlers:** `ExpertRelationsHandler.kt`
-  - **Diplomatic Calculations:** `ExpertThreatCalc.kt`
-
-### 2.3 External Modules
-
-#### 2.3.1 Battle Helper
-
-**Path:** `core/src/com/unciv/logic/automation/unit/BattleHelper.kt`
-
-**Responsibilities:**
-- Provides utility methods for battle-related operations.
-- Determines attack feasibility and executes combat actions.
-
-**Key Methods:**
-- `tryAttackNearbyEnemy(unit: MapUnit, stayOnTile: Boolean = false): Boolean`
-- `canAttack(attacker: MapUnit, targetTile: Tile): Boolean`
-- `chooseAttackTarget(unit: MapUnit, attackableEnemies: List<AttackableTile>): AttackableTile?`
-
-
-## 3. Technical Implementation
-
-### 3.1 State Management
-
-- **Accessing Game State**
-  - Utilize observer patterns to listen for game state changes.
-  ---
-  class GameStateObserver : Observer<GameState> {
-      override fun onChanged(newState: GameState) {
-          // Handle state changes
+- **Game State Access**
+  - **Path:** `core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt`
+  ```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt
+  class MilitaryModule : AIModule {
+      override fun execute(civInfo: Civilization) {
+          val units = civInfo.units.getCivUnits()
+          units.forEach { handleUnit(it) }
+      }
+      
+      private fun handleUnit(unit: Unit) {
+          // Unit handling logic
       }
   }
-  ---
-  
-- **Caching Strategies**
-  - Implement memoization for expensive calculations.
-  - Use in-memory caches with eviction policies.
+  ```
+  - **Description:** Modules access the game state through the `Civilization` object passed to their `execute` method. This allows modules like `MilitaryModule` to retrieve and manipulate units, cities, and other game elements.
 
-- **Update Mechanisms**
-  - Trigger state updates based on AI decisions.
-  - Ensure thread-safety with synchronized access.
+### 1.2 Decision Making Pipeline
 
-### 3.2 Performance
-
-- **Critical Paths**
-  - Optimize decision-making algorithms to reduce latency.
-  - Example: Replace recursive algorithms with iterative counterparts where feasible.
-
-- **Optimization Points**
-  - Profile AI modules using [Your Profiling Tool].
-  - Focus on optimizing `MilitaryModule.kt` during combat evaluations.
-
-- **Resource Usage**
-  - Monitor memory consumption using Kotlinx Memory Analyzer.
-  - Ensure coroutine usage does not lead to excessive thread creation.
-
-### 3.3 Integration Patterns
-
-- **Module Communication**
-  - Use event-driven architecture to facilitate communication between modules.
-  - [See Integration Points](current_focus.md#integration-points)
-  - Core integration points include:
-    - Automation system interfaces
-    - Game state management
-    - Decision-making pipeline
-    - Module communication channels
-
-- **Priority Systems**
-  - Assign priorities to modules to manage decision-making order.
-  - Example: Military decisions take precedence over economic decisions during wartime.
-
-- **Resource Sharing**
-  - Share common resources like game state data and utility functions via the `core` module.
-
-- **Handler Implementations**
-  - Implement abstract handler patterns for different unit and economic types to ensure modularity.
-
-## 4. Development Patterns
-
-### 4.1 Design Patterns
-
-- **Handler Implementation Patterns**
-  - Established an abstract handler pattern for different unit types (Air, Water, Land) to ensure modular and scalable unit processing.
-  
-- **Processing Order Patterns**
-  - Introduced a processing order pattern to handle units in a priority-sorted manner, enhancing tactical decision-making efficiency.
-  
-- **Priority Systems**
-  - Implemented a priority system within the Military Module to determine the order in which units are processed based on their type and calculated priority.
-  
-- **Module Interaction Patterns**
-  - Ensured clear separation of concerns by abstracting battle-related logic into the Battle Helper.
-
-### 4.2 Implementation Standards
-
-- **Error Handling**
-  - Implement guard clauses to handle preconditions and invalid states early in functions.
-  ---
-  fun performAction(action: Action, personality: Personality, civStats: Stats): Result {
-      // 1. Check if the action is valid.
-      if (!action.isValid()) return Result.Error("Invalid action")
-  
-      // 2. Check if the action is feasible.
-      if (civStats.isUnderThreat() * personality.scaledFocus(PersonalityValue.Aggressive) < action.threshold) {
-          return Result.Error("Action not feasible due to threat level and aggression focus")
-      }
-  
-      // 3. Proceed with performing the action.
-      // Action execution logic goes here.
-      return Result.Success("Action performed successfully")
+- **Pipeline Overview**
+  - **Path:** `core/src/com/unciv/logic/aautoexpert/AAutoExpert.kt`
+  ```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/AAutoExpert.kt
+  fun executeTurn(civInfo: Civilization) {
+      modules.forEach { it.execute(civInfo) }
+      updateGameState(civInfo)
   }
-  ---
+  ```
+  - **Description:** The `executeTurn` method iterates through all active modules, allowing each to perform their specific AI actions. After all modules have executed, the game state is updated to reflect the changes made by the AI.
 
-- **Logging**
-  - Utilize `Logback` for structured logging across all modules.
-  ---
-  private val log = LoggerFactory.getLogger(DiplomacyManager::class.java)
-  
-  fun executeDiplomaticAction(action: DiplomaticAction, personality: Personality) {
-      try {
-          // 1. Execute action
-          // Action logic goes here.
-  
-          // 2. Log successful execution.
-          log.info("Diplomatic action ${action.type} executed successfully.")
-      } catch (e: Exception) {
-          // 3. Log the error with a meaningful message.
-          log.error("Failed to execute diplomatic action: ${action.type}", e)
-          throw e
+- **Priority Handling**
+  - **Path:** `core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt`
+  ```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt
+  fun execute(civInfo: Civilization) {
+      val prioritizedUnits = prioritizeUnits(civInfo.units.getCivUnits())
+      prioritizedUnits.forEach { unit ->
+          handleUnit(unit)
       }
   }
-  ---
   
-- **Testing Requirements**
-  - Develop unit tests for AI modules using **JUnit** and **Mockito**.
-  - Implement integration tests to validate interactions between AI components.
-  
-- **Performance Requirements**
-  - Optimize algorithms and data processing to maximize runtime speed.
-  - Utilize caching techniques and efficient data structures to minimize redundant calculations.
+  private fun prioritizeUnits(units: List<Unit>): List<Unit> {
+      return units.sortedByDescending { it.priority }
+  }
+  ```
+  - **Description:** Units are prioritized based on predefined criteria (e.g., unit type, threat level). Higher priority units are handled first to ensure critical actions are addressed promptly.
 
-## 5. Integration Reference
+### 1.3 Module System
 
-### 5.1 Base Game Integration
+- **Core Module Interfaces**
+  - **Path:** `core/src/com/unciv/logic/aautoexpert/modules/core/AIModule.kt`
+  ```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/modules/core/AIModule.kt
+  interface AIModule {
+      fun execute(civInfo: Civilization)
+  }
+  ```
+  - **Description:** `AIModule` defines the contract for all AI modules. Each module implements the `execute` method, which receives the current `Civilization` state and performs its logic.
 
-- **Integration Points with Unciv**
-  - Integrates with Unciv's game state and unit management systems.
-  - Utilizes observer patterns to listen for game state changes.
-  
-- **Required Interfaces**
-  - Implements interfaces defined in `AIModule.kt` for seamless integration.
-  
-- **State Management**
-  - Accesses and updates the game state through centralized state managers.
-  
-- **Performance Considerations**
-  - Ensures that AI integrations do not introduce significant latency to the game's core mechanics.
+- **Inter-Module Communication**
+  - Modules communicate through shared services or event-driven patterns.
+  - **Example:** `MilitaryModule` interacts with `BattleHelper` to execute combat actions.
+  - **Path:** `core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt`
+  ```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt
+  class MilitaryModule : AIModule {
+      private val battleHelper = BattleHelper()
+      
+      override fun execute(civInfo: Civilization) {
+          civInfo.units.getCivUnits().forEach { unit ->
+              if (unit.isMilitary) {
+                  battleHelper.tryAttackNearbyEnemy(unit)
+              }
+          }
+      }
+  }
+  ```
 
-### 5.2 Module Integration
+---
 
-- **Inter-module Communication**
-  - Facilitates communication between modules using event-driven patterns.
-  - Example: Military Module communicates with Battle Helper to execute attacks.
-  
-- **Shared Resources**
-  - Utilizes shared utilities and state managers from the `core` module.
-  
-- **Event Handling**
-  - Implements observer patterns to handle events such as state changes and action triggers.
-  
-- **State Synchronization**
-  - Ensures consistent state across all modules by centralizing state updates and access.
+## 2. Current Implementation
 
+### 2.1 Military Module
+
+- **Path:** `core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt`
+- **Responsibilities:**
+  - Decision-making for military units, including ranged, melee, naval, and air units.
+- **Key Functionalities:**
+  - Unit handling based on type and priority.
+  - Interaction with `BattleHelper` for combat actions.
+
+```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt
+class MilitaryModule : AIModule {
+    private val battleHelper = BattleHelper()
+    
+    override fun execute(civInfo: Civilization) {
+        val prioritizedUnits = prioritizeUnits(civInfo.units.getCivUnits())
+        prioritizedUnits.forEach { unit ->
+            handleUnit(unit)
+        }
+    }
+    
+    private fun prioritizeUnits(units: List<Unit>): List<Unit> {
+        return units.sortedByDescending { it.priority }
+    }
+    
+    private fun handleUnit(unit: Unit) {
+        if (unit.isMilitary) {
+            battleHelper.tryAttackNearbyEnemy(unit)
+        }
+    }
+}
+```
+
+### 2.2 Core Systems
+
+- **Path:** `core/src/com/unciv/logic/aautoexpert/modules/core/AIModule.kt`
+- **Components:**
+  - **AAutoExpert.kt**: Main entry point.
+  - **AIModule.kt**: Base interface.
+  - **BattleHelper.kt**: Utility for combat operations.
+
+```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/modules/core/AIModule.kt
+interface AIModule {
+    fun execute(civInfo: Civilization)
+}
+```
+
+### 2.3 Testing Framework
+
+- **Unit Testing:**
+  - Utilize **JUnit** and **Mockito** to write unit tests for modules.
+  - Example: Testing the `execute` method in `MilitaryModule`.
+- **Integration Testing:**
+  - Validate interactions between `MilitaryModule` and `BattleHelper`.
+- **Test Data:**
+  - Utilize mock `Civilization` and `Unit` objects to simulate game states.
+
+---
+
+## 3. Extension Points
+
+### 3.1 Adding New Modules
+
+- **Procedure:**
+  1. **Create Module Folder:**
+     - Add a new folder under `aautoexpert/modules/` for the module (e.g., `economy`).
+  2. **Implement AIModule:**
+     - Create a new class implementing the `AIModule` interface.
+  3. **Define Responsibilities:**
+     - Clearly outline the module's purpose and functionalities.
+  4. **Integrate with AAutoExpert:**
+     - Register the new module in `AAutoExpert.kt`'s module list.
+  5. **Write Tests:**
+     - Develop unit and integration tests for the new module.
+
+### 3.2 Extending Existing Modules
+
+- **Procedure:**
+  1. **Adhere to Patterns:**
+     - Follow existing coding standards and patterns.
+  2. **Maintain Interfaces:**
+     - Ensure new functionalities comply with module interfaces.
+  3. **Update Responsibilities:**
+     - Clearly document any new responsibilities or changes within the module.
+  4. **Integration:**
+     - Ensure seamless integration with other modules and shared services.
+  5. **Testing:**
+     - Update unit and integration tests to cover new functionalities.
+
+### 3.3 Testing Requirements
+
+- **Standards:**
+  - Follow Unciv's testing patterns using **JUnit** and **Mockito**.
+  - Maintain high test coverage for all implemented functionalities.
+- **Scenarios:**
+  - Handle various game states and AI decision-making paths.
+  - Validate module interactions and state consistency.
+
+---
+
+## 4. Module Dependencies
+> This section describes the two main types of dependencies in the AAutoExpert system: core module dependencies that show direct relationships between components, and integration dependencies that visualize the overall system architecture.
+
+- **Core Dependencies:** Lists each core module and the modules they depend on, facilitating a clear understanding of module interrelations.
+- **Integration Dependencies:** Provides a visual graph to aid in comprehending complex dependencies and data flows between modules.
+
+### 4.1 Core Dependencies
+
+A detailed overview of core modules and their dependencies:
+
+- **MilitaryModule**
+  - **Depends on:** `AIModule`, `ExpertStateManager`
+- **EconomyModule**
+  - **Depends on:** `AIModule`, `ExpertStateManager`
+- **DiplomacyModule**
+  - **Depends on:** `AIModule`, `ExpertStateManager`, `MilitaryModule`
+- **AIExpertModule**
+  - **Depends on:** `AIModule`
+
+### 4.2 Integration Dependencies
+
+Visual representation of module relationships and data flows:
+
+```mermaid
+graph TD
+    AIModule --> MilitaryModule
+    AIModule --> EconomyModule
+    AIModule --> DiplomacyModule
+    ExpertStateManager --> MilitaryModule
+    ExpertStateManager --> EconomyModule
+    ExpertStateManager --> DiplomacyModule
+    MilitaryModule --> DiplomacyModule
+```
+
+---
+
+## 5. Performance and Optimization
+
+### 5.1 Optimization Strategies
+
+- **Algorithm Optimization:**
+  - Replace recursive decision-making with iterative methods where possible.
+  - Utilize efficient sorting and searching algorithms for unit prioritization.
+  
+  ```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt
+private fun prioritizeUnits(units: List<Unit>): List<Unit> {
+    return units.sortedWith(compareByDescending<Unit> { it.priority }
+                                .thenByDescending { it.strength })
+}
+```
+
+- **Memoization:**
+  - Cache results of expensive calculations to avoid redundant processing.
+  
+### 5.2 Resource Management
+
+- **Memory Usage Monitoring:**
+  - Utilize Kotlinx Memory Analyzer to monitor and optimize memory consumption.
+  
+```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/StateManager.kt
+class StateManager {
+    // Existing state management code
+    fun cacheExpensiveCalculation(input: Input): Result {
+        return cache.getOrPut(input) { performCalculation(input) }
+    }
+}
+```
+
+- **Coroutine Management:**
+  - Ensure coroutines are properly managed to prevent excessive thread creation.
+  
+```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/AAutoExpert.kt
+fun executeTurn(civInfo: Civilization) {
+    autoPlayJob = GlobalScope.launch {
+        modules.forEach { it.execute(civInfo) }
+        withContext(Dispatchers.Main) {
+            updateGameState(civInfo)
+        }
+    }
+}
+```
+
+### 5.3 Performance Monitoring
+
+- **Profiling Tools:**
+  - Regularly profile AI modules to identify and address performance bottlenecks.
+- **Logging and Metrics:**
+  - Use structured logging to track performance metrics.
+  
+  ```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt
+private val logger = LoggerFactory.getLogger(MilitaryModule::class.java)
+
+fun handleMeleeUnit(unit: Unit) {
+    val startTime = System.nanoTime()
+    // Handle unit logic
+    val endTime = System.nanoTime()
+    logger.info("Handled melee unit ${unit.name} in ${endTime - startTime} ns")
+}
+```
+
+---
+
+## 6. Development Workflow
+
+### 6.1 Module Development
+
+- **Adding New Modules:**
+  - Follow the established folder structure under `aautoexpert/modules/`.
+  - Define clear responsibilities and integration points for each new module.
+  - Implement the `AIModule` interface.
+  
+- **Extending Existing Modules:**
+  - Adhere to existing patterns and interfaces when adding new features to current modules.
+  - Ensure new functionalities do not disrupt existing workflows.
+  
+- **Refactoring Guidelines:**
+  - Maintain readability and maintainability by refactoring code to eliminate redundancy and improve structure.
+  
+  ```kotlin:Unciv---Zeph-Testing/core/src/com/unciv/logic/aautoexpert/modules/military/MilitaryModule.kt
+fun optimizeUnitHandling(units: List<Unit>) {
+    units.parallelStream().forEach { unit ->
+        handleUnit(unit)
+    }
+}
+```
+
+### 6.2 Integration Process
+
+- **Module Integration Steps:**
+  1. **Implement Module Logic:**
+     - Develop the core functionality of the module.
+  2. **Register Module:**
+     - Add the module to `AAutoExpert`’s module list.
+  3. **Ensure Compatibility:**
+     - Verify the module interacts correctly with shared utilities and other modules.
+  4. **Write Tests:**
+     - Develop unit and integration tests to cover new functionalities.
+  5. **Performance Testing:**
+     - Profile the module to ensure it meets performance standards.
+  
+- **Dependency Management:**
+  - Use Gradle to manage dependencies between modules.
+  - Define module dependencies clearly in `build.gradle`.
+  
+  ```groovy:core/build.gradle
+  dependencies {
+      implementation project(':modules:military')
+      implementation 'org.mockito:mockito-core:3.+' // For testing
+      // Other dependencies
+  }
+  ```
+
+### 6.3 Version Control Practices
+
+- **Git Best Practices:**
+  - **Frequent Commits:** Commit changes in small, manageable increments.
+  - **Clear Commit Messages:** Use descriptive messages that explain what and why.
+    - Example: `feat(military): add artillery unit handling`
+  - **Branching Strategy:** Use feature branches for new modules or significant changes.
+    - Example: `feature/military-module`
+  
+- **Code Reviews:**
+  - Ensure all code is reviewed by at least one other developer before merging.
+  - Use pull requests to facilitate discussions and feedback.
+  
+- **Continuous Integration:**
+  - Integrate with CI tools to run automated tests on each commit.
+  - Ensure builds pass before merging changes to the main branch.

@@ -1,7 +1,3 @@
-# Daily Coding Workflow
-
-> This document outlines the standard procedure for a single day in the AAutoExpert AI development process. It ensures consistency, effective planning, and thorough documentation. It will not be used for processes that do not modify AAuto Expert files.
-
 > **Daily Workflow Documentation Requirements**
 >
 > This is a living document that must be updated daily to reflect current work and ensure alignment with project goals:
@@ -30,9 +26,15 @@
    - Follow coding patterns and guidelines documented in `patterns/military_patterns.md` and other relevant pattern files to ensure correctness and minimize debugging needs.
 
 4. **Debugging and Testing**
-   - Test implemented features to ensure they work as intended.
-   - If issues arise, debug using references from the codebase and successful implementations.
-   - Document any new patterns or fixes in the appropriate pattern documentation for future reference.
+   - **Game-Based Testing:**
+     - Load appropriate test save using `GameTestSetup.loadTestSave(saveName: String)`.
+     - Run AAuto Expert for 3-5 turns using `GameTestSetup.runAutoExpertTurns(gameInfo: GameInfo, turns: Int)`.
+     - Document behavior in `progress_log.md`.
+     - Fix critical issues identified during testing.
+   - **Code Testing:**
+     - Write or update unit tests using **JUnit** and **Mockito**.
+     - Execute integration tests to validate module interactions.
+     - Verify performance metrics and optimize as necessary.
 
 5. **Update Documentation**
    - Update all relevant `.md` files (e.g., `project_overview.md`, `architecture.md`) to reflect changes made during the day.
@@ -81,3 +83,4 @@
 
 #### Progress Log Update
 - Will update `progress_log.md` at the end of the day.
+```

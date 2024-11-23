@@ -14,6 +14,39 @@
 >
 > Additional sections may be updated as necessary to reflect changes in project direction or unforeseen developments. All changes MUST be evaluated against the "Project Goals" section to maintain focus and ensure consistency.
 
+--Table of Contents--
+
+# AAutoExpert AI Development Project
+
+1. Project Overview
+
+2. Project Goals
+
+3. Design and Architecture
+   3.1 Core Design Principles
+   3.2 Technical Foundation
+   3.3 Project Hierarchy
+
+4. Development Phases
+   4.1 Phase 1: Ancient Era Foundation
+   4.2 Phase 2: Classical Era Development
+   4.3 Phase 3: Medieval Era Complexity
+   4.4 Phase 4: Renaissance Era Sophistication
+   4.5 Phase 5: Industrial Era Mastery
+   4.6 Phase 6: Modern Era Refinement
+   4.7 Phase 7: Information Era Completion
+   4.8 Input -> AI -> Output Considerations Across Phases
+
+5. Current Project Status
+   5.1 Development Progress
+   5.2 Technical Infrastructure
+   5.3 Immediate Priorities
+
+6. Future Development Plans
+   6.1 Planned Modules
+   6.2 Enhancement Areas
+   6.3 Long-Term Vision
+
 ---
 
 ## 1. Project Overview
@@ -450,7 +483,7 @@ Key aspects of this approach include:
   - Creating city placement evaluation system
   - Setting up basic unit control framework
 
-### 5.2 Technical Infrastructure
+### 5.2 Current Technical Infrastructure
 - **Framework Implementation:**
   - Project hierarchy established under `/com/unciv/logic/aautoexpert/`
   - Core modules structure defined
