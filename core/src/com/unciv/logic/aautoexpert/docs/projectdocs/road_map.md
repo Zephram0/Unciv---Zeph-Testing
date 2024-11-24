@@ -20,61 +20,83 @@
 > The 5-layer pipeline architecture ensures clean separation between game state collection, processing, and action execution. This structure enables MVP development while maintaining extensibility for future enhancements.
 
 ### 1.2 Current File Structure
-> Shows actual implementation in codebase. Use this to track current progress and identify gaps between current and target structure. All changes must be reflected in architecture.md.
+> Shows actual implementation in codebase. Requirements:
+> 1. Must exactly match current files/folders in `/com/unciv/logic/aautoexpert/`
+> 2. Use checkboxes: [ ] unstarted, [-] started, [✓] completed
+> 3. Include completion percentages for unfinished components
+> 4. Brief description comments after each entry
+> 5. Indentation must show exact folder hierarchy
+> 6. All changes must be reflected in architecture.md
 
 ---
 autoexpert/
-├── [✓] AAutoExpert.kt                     # Main entry point
-├── [-] modules/                           # Basic module structure (30%)
-│   ├── [-] military/                      # Initial military handling
-│   │   ├── [-] MilitaryModule.kt         # Basic unit control
-│   │   └── [-] handlers/                  # Unit type handlers
-│   │       └── [-] SettlerHandler.kt      # Settler movement logic
-│   └─ [✓] core/                         # Core interfaces
-│       └── [✓] AIModule.kt               # Base module interface
-└── [-] utils/                            # Basic utilities (10%)
-    └── [-] Logger.kt                     # Simple logging
+├── [✓] AAutoExpert.kt                     # Main entry point and coordinator
+├── [-] expertmodules/                     # Basic module structure (30%)
+│   ├── [-] expertmilitary/               # Military operations
+│   │   ├── [-] ExpertMilitaryModule.kt    # Unit coordination
+│   │   └── [-] experthandlers/            # Unit type handlers
+│   │       ├── [-] ExpertSettlerHandler.kt # Settler movement logic
+│   │       └── [-] ExpertMilitaryHandler.kt# Military unit control
+│   │       ├── [ ] ExpertRangedHandler.kt  # Ranged unit control
+│   │       └── [ ] ExpertNavalHandler.kt   # Naval unit control
+│   │   └── [✓] expertcore/                   # Core interfaces
+│   │       ├── [✓] AIModule.kt               # Base module interface
+│   │       └── [-] ExpertStateLogger.kt       # State tracking and logging
+│   └── [✓] expertutils/                      # Basic utilities (20%)
+│       └── [-] ExpertMovementHelper.kt       # Safe movement utilities
 ---
 
 ### 1.3 Current Phase Target Structure
-> Next incremental goal showing minimum files needed for Phase 1 MVP. This structure represents our immediate development target and will update when entering new phases.
+> Shows minimum files needed for current phase MVP. Requirements:
+> 1. Only include files needed for current phase completion
+> 2. Use checkboxes to track implementation status
+> 3. Must align with goals in project_overview.md
+> 4. Include brief descriptions of each component's purpose
+> 5. Group related functionality in logical folders
+> 6. Remove any files/features not needed for MVP
 
 ---
 autoexpert/
 ├── [✓] AAutoExpert.kt                     # Main coordinator
-├── [-] expertpipeline/                    # Basic pipeline (MVP)
-│   ├── [-] expertinput/                   # Simple input processing
-│   │   ├── [✓] ExpertRawInput.kt         # Game state collection
-│   │   └── [ ] ExpertInputRefiner.kt      # Basic data transformation
-│   ├── [ ] expertcore/                    # Core decision making
-│   │   ├── [ ] ExpertStrategicCore.kt     # Basic decisions
-│   │   └── [ ] ExpertStateManager.kt      # State tracking
-│   └── [-] expertoutput/                  # Action execution
-│       └── [-] ExpertRawOutput.kt         # Basic actions
 ├── [-] expertmodules/                     # Phase 1 modules
 │   ├── [-] expertmilitary/               # Military focus
 │   │   ├── [-] ExpertMilitaryModule.kt    # Unit coordination
 │   │   └── [-] experthandlers/            # Unit handlers
 │   │       ├── [-] ExpertSettlerHandler.kt # Settler logic
 │   │       └── [ ] ExpertWarriorHandler.kt # Warrior logic
-│   └── [ ] experteconomy/                 # Basic economy
-│       ├── [ ] ExpertEconomyModule.kt     # Resource management
-│       └── [ ] experthandlers/            # Economy handlers
-│           └── [ ] ExpertCityHandler.kt   # City management
-└── [ ] expertutils/                       # Phase 1 utilities
-    ├── [ ] ExpertLogger.kt                # Enhanced logging
-    └── [ ] ExpertMetrics.kt               # Basic metrics
+│   │       ├── [ ] ExpertRangedHandler.kt  # Ranged unit control
+│   │       └── [ ] ExpertNavalHandler.kt   # Naval unit control
+│   │   └── [✓] expertcore/                   # Core interfaces
+│   │       ├── [✓] AIModule.kt               # Base module interface
+│   │       └── [-] ExpertStateLogger.kt       # State tracking
+├── [-] rulevalidator_patch/              # Validation layer
+│   ├── [-] ValidRawInputValidator.kt      # Input validation
+│   │   ├── [-] UnitValidation            # Unit validation
+│   │   └── [ ] CityValidation            # City validation
+│   └── [-] ValidRawOutputValidator.kt     # Output validation
+│       ├── [-] UnitCommands              # Unit commands
+│       └── [ ] CityCommands              # City commands
+└── [-] expertutils/                      # Phase 1 utilities
+    ├── [-] ExpertMovementHelper.kt       # Movement utilities
+    └── [ ] ExpertMetrics.kt              # Basic metrics
 ---
 
 ### 1.4 Final Target Structure
-> Long-term vision of complete system. While subject to change, this provides architectural guidance and helps maintain consistent naming/organization across development phases.
+> Shows complete system vision. Requirements:
+> 1. Include all planned files/folders through project completion
+> 2. Maintain consistent naming with current structure
+> 3. Group components by domain and responsibility
+> 4. Include detailed descriptions of each component
+> 5. Show validation layer breakdown by domain
+> 6. Indicate current progress with checkboxes and percentages
+> 7. Structure must support all features in project_overview.md
 
 ---
 autoexpert/
 ├── [✓] AAutoExpert.kt                     # Main coordinator
 ├── [-] expertpipeline/                    # 5-layer AI processing pipeline (15%)
 │   ├── [-] expertinput/                   # Input processing layers
-│   │   ├── [✓] ExpertRawInput.kt         # Game state collection
+│   │   ├── [-] ExpertRawInput.kt         # Game state collection
 │   │   ├── [ ] ExpertInputRefiner.kt      # Data transformation
 │   │   └── [ ] expertutils/               # Input utilities
 │   │       └── [ ] ExpertInputValidator.kt # Input validation
@@ -91,20 +113,79 @@ autoexpert/
 ├── [-] expertmodules/                     # Domain modules
 │   ├── [-] expertmilitary/               # Military operations
 │   │   ├── [-] ExpertMilitaryModule.kt    # Unit coordination
-│   │   └── [-] experthandlers/            # Unit handlers
+│   │   ├── [-] experthandlers/            # Unit handlers
+│   │   │   ├── [-] ExpertSettlerHandler.kt # Settler logic
+│   │   │   ├── [-] ExpertMilitaryHandler.kt# Basic military control
+│   │   │   ├── [ ] ExpertSiegeHandler.kt   # Siege unit control
+│   │   │   ├── [ ] ExpertNavalHandler.kt   # Naval unit control
+│   │   │   ├── [ ] ExpertAirHandler.kt     # Aircraft control
+│   │   │   └── [ ] ExpertNuclearHandler.kt # Nuclear weapons
+│   │   └── [-] expertutils/               # Military utilities
+│   │       ├── [-] ExpertBattleCalc.kt    # Combat calculations
+│   │       └── [ ] ExpertFormation.kt     # Unit formation logic
+│   │
+│   ├── [ ] expertcity/                    # City operations
+│   │   ├── [ ] ExpertCityModule.kt        # City coordination
+│   │   ├── [ ] experthandlers/            # City handlers
+│   │   │   ├── [ ] ExpertGrowthHandler.kt # Population management
+│   │   │   ├── [ ] ExpertProductionHandler.kt # Build management
+│   │   │   └── [ ] ExpertSpecialistHandler.kt # Specialist control
+│   │   └── [ ] expertutils/               # City utilities
+│   │       └── [ ] ExpertCityCalc.kt      # City calculations
+│   │
 │   ├── [ ] experteconomy/                 # Economic operations
+│   │   ├── [ ] ExpertEconomyModule.kt     # Economy coordination
+│   │   ├── [ ] experthandlers/            # Economy handlers
+│   │   │   ├── [ ] ExpertTradeHandler.kt  # Trade routes
+│   │   │   ├── [ ] ExpertMarketHandler.kt # Market/Bank timing
+│   │   │   └── [ ] ExpertCorporateHandler.kt # Corporate management
+│   │   └── [ ] expertutils/               # Economy utilities
+│   │       └── [ ] ExpertResourceCalc.kt  # Resource calculations
+│   │
 │   ├── [ ] expertculture/                 # Cultural operations
+│   │   ├── [ ] ExpertCultureModule.kt     # Culture coordination
+│   │   ├── [ ] experthandlers/            # Culture handlers
+│   │   │   ├── [ ] ExpertPolicyHandler.kt # Policy selection
+│   │   │   ├── [ ] ExpertTourismHandler.kt# Tourism management
+│   │   │   └── [ ] ExpertArchaeologyHandler.kt # Archaeological digs
+│   │   └── [ ] expertutils/               # Culture utilities
+│   │       └── [ ] ExpertInfluenceCalc.kt # Cultural influence calc
+│   │
 │   ├── [ ] expertscience/                 # Research operations
-│   ├── [ ] expertreligion/                # Religious operations
-│   └── [ ] expertdiplomacy/               # Diplomatic operations
+│   │   ├── [ ] ExpertScienceModule.kt     # Science coordination
+│   │   ├── [ ] experthandlers/            # Science handlers
+│   │   │   ├── [ ] ExpertTechHandler.kt   # Tech tree navigation
+│   │   │   ├── [ ] ExpertSpaceHandler.kt  # Space race projects
+│   │   │   └── [ ] ExpertResearchHandler.kt # Research agreements
+│   │   └── [ ] expertutils/               # Science utilities
+│   │       └── [ ] ExpertTechCalc.kt      # Tech value calculations
+│   │
+│   ├── [ ] expertreligion/               # Religious operations
+│   │   ├── [ ] ExpertReligionModule.kt    # Religion coordination
+│   │   ├── [ ] experthandlers/            # Religion handlers
+│   │   │   ├── [ ] ExpertBeliefHandler.kt # Belief selection
+│   │   │   ├── [ ] ExpertSpreadHandler.kt # Religious unit control
+│   │   │   └── [ ] ExpertPressureHandler.kt # Religious pressure
+│   │   └── [ ] expertutils/               # Religion utilities
+│   │       └── [ ] ExpertFaithCalc.kt     # Faith calculations
+│   │
+│   └── [ ] expertdiplomacy/              # Diplomatic operations
+│       ├── [ ] ExpertDiplomacyModule.kt   # Diplomacy coordination
+│       ├── [ ] experthandlers/            # Diplomacy handlers
+│       │   ├── [ ] ExpertDealHandler.kt   # Trade deals
+│       │   ├── [ ] ExpertWarHandler.kt    # War declarations
+│       │   ├── [ ] ExpertCityStateHandler.kt # City-state relations
+│       │   └── [ ] ExpertVictoryHandler.kt # Diplomatic victory
+│       └── [ ] expertutils/               # Diplomacy utilities
+│           └── [ ] ExpertThreatCalc.kt    # Threat calculations
 ├── [ ] experttesting/                     # Test implementations
 │   ├── [ ] ExpertTestGame.kt              # Test game setup
 │   ├── [ ] ExpertUnitTests.kt             # Unit testing
 │   └── [ ] expertintegration/             # Integration tests
-└── [ ] expertutils/                       # Global utilities
-    ├── [ ] ExpertLogger.kt                # Logging system
+└── [-] expertutils/                      # Global utilities (20%)
+    ├── [-] ExpertMovementHelper.kt       # Safe movement utilities
+    ├── [ ] ExpertLogger.kt                # Enhanced logging
     ├── [ ] ExpertMetrics.kt               # Performance monitoring
-    ├── [ ] ExpertPipeline.kt              # Pipeline tracking
     └── [ ] ExpertDebugger.kt              # Debug utilities
 ---
 
@@ -113,32 +194,27 @@ autoexpert/
 
 ```mermaid
 graph TD
-    subgraph Pipeline Layers
-        ExpertRawInput --> ExpertInputRefiner
-        ExpertInputRefiner --> ExpertStrategicCore
-        ExpertStrategicCore --> ExpertOutputRefiner
-        ExpertOutputRefiner --> ExpertRawOutput
+    subgraph Input Flow
+        UC[Unciv Codebase] --> Decision1{Valid Input\nExists?}
+        Decision1 -->|Yes| RIL[Raw Input Layer]
+        Decision1 -->|No| VRI[ValidRawInputValidator]
+        VRI --> RIL
+        RIL --> REFL[Refined Input Layer]
     end
 
-    subgraph Core Systems
-        ExpertStrategicCore --> ExpertStateManager
-        ExpertStrategicCore --> ExpertVictoryManager
-        ExpertStrategicCore --> ExpertPersonality
+    subgraph Core Processing
+        REFL --> AI[AI Core]
+        AI --> REFO[Refined Output Layer]
     end
 
-    subgraph Expert Modules
-        ExpertMilitaryModule
-        ExpertEconomyModule
-        ExpertCultureModule
-        ExpertScienceModule
-        ExpertReligionModule
-        ExpertDiplomacyModule
+    subgraph Output Flow
+        REFO --> ROL[Raw Output Layer]
+        ROL --> Decision2{Valid Output\nExists?}
+        Decision2 -->|Yes| UC2[Unciv Codebase]
+        Decision2 -->|No| VRO[ValidRawOutputValidator]
+        VRO --> UC2
     end
-
-    ExpertStrategicCore --> Expert Modules
-    ExpertStateManager --> Expert Modules
-    ExpertVictoryManager --> Expert Modules
-
+```
 
 ## 2. Current Development Focus: Milestone 1.2 - Early Game Basics
 > This section outlines the Features needed to complete the current Milestone, breaking each into key Components. Components track overall progress but defer implementation details to `current_focus.md`.
@@ -152,80 +228,170 @@ graph TD
 #### 2.1.1 Component 1: Settler Movement Logic (40%)
 - [✓] Initial position evaluation
 - [-] Resource proximity scoring (50%)
-- [ ] Strategic location assessment
-- [ ] Movement path optimization
+  - [✓] Basic luxury resource scoring
+  - [-] Strategic resource evaluation (30%)
+  - [ ] Resource accessibility validation
+- [-] Strategic location assessment (20%)
+  - [-] Basic terrain evaluation
+  - [ ] Growth potential analysis
+  - [ ] Defensive position scoring
+- [-] Movement path optimization (10%)
+  - [-] Basic pathfinding
+  - [ ] Threat avoidance
+  - [ ] Military escort coordination
 
 #### 2.1.2 Component 2: City Placement System (30%)
 - [✓] Basic resource evaluation
 - [-] Growth potential analysis (60%)
-- [ ] Strategic value calculation
+  - [✓] Food source evaluation
+  - [-] Production tile analysis
+  - [ ] Population growth projection
+- [-] Strategic value calculation (20%)
+  - [-] Defensive terrain assessment
+  - [ ] Trade route potential
+  - [ ] Resource monopoly potential
 - [ ] Defensive position assessment
 
 #### 2.1.3 Component 3: Starting Unit Control (20%)
 - [✓] Warrior positioning
+- [-] Military escort logic (40%)
+  - [✓] Basic settler protection
+  - [-] Threat response
+  - [ ] Formation movement
 - [ ] Scout movement patterns
 - [ ] Barbarian camp handling
-- [ ] Initial exploration routes
 
 ### 2.2 Feature 2: Early Production Queue (15%)
 *(Ref: `project_overview.md#milestone-1.2`)*
 
 #### 2.2.1 Component 1: Build Order Priority (15%)
 - [-] Scout vs Warrior evaluation (40%)
+  - [✓] Basic unit comparison
+  - [-] Terrain-based decision making (30%)
+  - [ ] Threat level assessment
 - [ ] Worker timing optimization
+  - [ ] Resource improvement priority
+  - [ ] Growth vs Production balance
 - [ ] Monument consideration
+  - [ ] Culture value assessment
+  - [ ] Border expansion needs
 - [ ] Resource improvement sequencing
+  - [ ] Luxury vs Strategic priority
+  - [ ] Growth resource timing
 
 #### 2.2.2 Component 2: Resource Management (10%)
 - [-] Initial tile working strategy (30%)
+  - [✓] Basic food priority
+  - [-] Production balance (20%)
+  - [ ] Growth timing
 - [ ] Growth vs Production balance
+  - [ ] Population target calculation
+  - [ ] Production needs assessment
 - [ ] Luxury resource prioritization
+  - [ ] Happiness impact evaluation
+  - [ ] Trade potential analysis
 - [ ] Strategic resource planning
+  - [ ] Military needs projection
+  - [ ] Resource monopoly potential
 
 ### 2.3 Feature 3: Initial Expansion Planning (8%)
 *(Ref: `project_overview.md#milestone-1.2`)*
 
 #### 2.3.1 Component 1: Territory Assessment (5%)
 - [-] Second city location scoring (20%)
+  - [✓] Basic resource evaluation
+  - [-] Strategic position analysis (10%)
+  - [ ] Growth potential calculation
 - [ ] Border expansion prediction
+  - [ ] Culture growth modeling
+  - [ ] Tile acquisition priority
 - [ ] Resource securing strategy
+  - [ ] Luxury resource control
+  - [ ] Strategic resource access
 - [ ] Chokepoint identification
+  - [ ] Terrain analysis
+  - [ ] Strategic value calculation
 
 #### 2.3.2 Component 2: Early Military Security (10%)
 - [-] Threat assessment system (25%)
+  - [✓] Basic unit strength comparison
+  - [-] Terrain advantage calculation (15%)
+  - [ ] Multi-unit threat analysis
 - [ ] Defensive unit positioning
+  - [ ] Terrain utilization
+  - [ ] City protection coverage
 - [ ] Barbarian camp clearing priority
+  - [ ] Risk vs Reward evaluation
+  - [ ] Resource path security
 - [ ] Scout safety protocols
+  - [ ] Retreat path planning
+  - [ ] Risk level assessment
 
 ### 2.4 Feature 4: Early Diplomacy (9%)
 *(Ref: `project_overview.md#milestone-1.2`)*
 
 #### 2.4.1 Component 1: Initial Diplomatic Relations (10%)
 - [ ] Alliance initiation protocols
+  - [ ] Neighbor strength assessment
+  - [ ] Mutual benefit analysis
 - [-] Threat assessment (30%)
+  - [✓] Military strength comparison
+  - [-] Border tension evaluation (20%)
+  - [ ] Expansion path conflicts
 - [ ] Diplomatic messaging system
+  - [ ] Message priority calculation
+  - [ ] Response pattern analysis
 - [ ] Trade negotiation strategies
+  - [ ] Resource value calculation
+  - [ ] Deal fairness assessment
 
 #### 2.4.2 Component 2: Diplomatic Strategy Development (8%)
 - [ ] Early game treaties
+  - [ ] Open borders timing
+  - [ ] Research agreement value
 - [ ] Strategic alliance formation
+  - [ ] Partner selection criteria
+  - [ ] Alliance timing optimization
 - [-] Diplomacy logging (25%)
+  - [✓] Basic interaction tracking
+  - [-] Pattern recognition (15%)
+  - [ ] Response effectiveness analysis
 - [ ] Reactive adjustments
+  - [ ] Threat response protocols
+  - [ ] Opportunity recognition
 
 ### 2.5 Feature 5: Economic Foundations (10%)
 *(Ref: `project_overview.md#milestone-1.2`)*
 
 #### 2.5.1 Component 1: Early Gold Management (8%)
 - [-] Gold income optimization (20%)
+  - [✓] Basic tile working
+  - [-] Trade route evaluation (10%)
+  - [ ] Building priority
 - [ ] Early investment strategies
+  - [ ] Tile purchase evaluation
+  - [ ] Building purchase timing
 - [ ] Economic event responses
+  - [ ] Resource loss mitigation
+  - [ ] Opportunity cost analysis
 - [ ] Budget allocation
+  - [ ] Military maintenance
+  - [ ] Development investment
 
 #### 2.5.2 Component 2: Resource Allocation Strategies (12%)
 - [-] Resource type balancing (30%)
+  - [✓] Basic resource categorization
+  - [-] Priority assignment (20%)
+  - [ ] Distribution optimization
 - [ ] Luxury vs strategic prioritization
+  - [ ] Happiness needs assessment
+  - [ ] Military requirements analysis
 - [ ] Dynamic prioritization
+  - [ ] Situation response system
+  - [ ] Need vs Want evaluation
 - [ ] City resource distribution
+  - [ ] Growth support allocation
+  - [ ] Production enhancement
 
 
 ## 3. Current Feature Implementation: Feature 1 - Settler Movement Logic

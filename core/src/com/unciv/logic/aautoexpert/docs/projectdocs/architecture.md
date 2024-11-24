@@ -40,6 +40,7 @@ aautoexpert/
    1.1 [Integration with Unciv](#11-integration-with-unciv)
    1.2 [Decision Making Pipeline](#12-decision-making-pipeline)
    1.3 [Module System](#13-module-system)
+   1.4 [Raw Input/Output Validation Layer](#14-raw-input-output-validation-layer)
 2. [Current Implementation](#2-current-implementation)
    2.1 [Military Module](#21-military-module)
    2.2 [Core Systems](#22-core-systems)
@@ -149,6 +150,97 @@ aautoexpert/
       }
   }
   ```
+
+### 1.4 Raw Input/Output Validation Layer
+
+The AI system uses a validation layer to ensure all game state access and modifications follow proper rules and patterns. This layer acts as a bridge when the Unciv codebase doesn't provide explicit Valid Raw Input/Output functions as defined in `valid_raw_input_output.md`.
+
+#### Input Flow Architecture
+
+```mermaid
+graph TD
+    UC[Unciv Codebase] --> Decision{Valid Input\nExists?}
+    Decision -->|Yes| RIL[Raw Input Layer]
+    Decision -->|No| VRI[ValidRawInputValidator]
+    VRI --> RIL
+    RIL --> REFL[Refined Input Layer]
+    REFL --> AI[AI Core]
+```
+
+1. **Input Path Selection:**
+   - First checks if Unciv codebase has valid input function
+   - Routes through ValidRawInputValidator if needed
+   - All inputs eventually reach Raw Input Layer
+
+2. **ValidRawInputValidator:**
+   - Creates valid input functions when missing from codebase
+   - Ensures proper validation and game rules
+   - Example:
+   ```kotlin
+   // When valid input doesn't exist in codebase
+   if (ValidRawInputValidator.UnitValidation.canFoundCity(unit, tile)) {
+       // Process city founding logic
+   }
+   ```
+
+#### Output Flow Architecture
+
+```mermaid
+graph TD
+    AI[AI Core] --> REFO[Refined Output Layer]
+    REFO --> ROL[Raw Output Layer]
+    ROL --> Decision{Valid Output\nExists?}
+    Decision -->|Yes| UC[Unciv Codebase]
+    Decision -->|No| VRO[ValidRawOutputValidator]
+    VRO --> UC
+```
+
+1. **Output Path Selection:**
+   - Raw Output Layer checks for valid output function
+   - Routes through ValidRawOutputValidator if needed
+   - All outputs eventually reach Unciv codebase
+
+2. **ValidRawOutputValidator:**
+   - Creates valid output functions when missing from codebase
+   - Ensures proper mechanics and validation
+   - Example:
+   ```kotlin
+   // When valid output doesn't exist in codebase
+   if (ValidRawOutputValidator.UnitCommands.foundCity(unit)) {
+       // City founded successfully
+   }
+   ```
+
+#### Complete Pipeline Flow
+
+```mermaid
+graph LR
+    subgraph Input Processing
+        UC[Unciv Codebase] --> VRI[ValidRawInputValidator]
+        UC --> RIL[Raw Input Layer]
+        VRI --> RIL
+        RIL --> REFL[Refined Input Layer]
+    end
+
+    subgraph AI Processing
+        REFL --> AI[AI Core]
+        AI --> REFO[Refined Output Layer]
+    end
+
+    subgraph Output Processing
+        REFO --> ROL[Raw Output Layer]
+        ROL --> VRO[ValidRawOutputValidator]
+        ROL --> UC2[Unciv Codebase]
+        VRO --> UC2
+    end
+```
+
+This architecture ensures:
+1. All inputs/outputs are properly validated
+2. Missing valid functions are properly implemented
+3. Game state consistency is maintained
+4. Proper game mechanics are used
+5. Clear separation of concerns
 
 ---
 

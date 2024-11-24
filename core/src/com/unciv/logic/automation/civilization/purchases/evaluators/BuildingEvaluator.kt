@@ -41,23 +41,23 @@ object BuildingEvaluator {
     private fun canPurchaseBuilding(building: Building, city: City): Boolean {
         // Basic validation checks with detailed logging
         if (building.cost < 0) {
-            println("${building.name} rejected: negative cost")
+            //println("${building.name} rejected: negative cost")
             return false
         }
         if (building.isWonder || building.isNationalWonder) {
-            println("${building.name} rejected: is wonder")
+            //println("${building.name} rejected: is wonder")
             return false
         }
         val constructionBuyCost = building.getStatBuyCost(city, Stat.Gold) ?: return false
         if (!city.cityConstructions.isConstructionPurchaseAllowed(building, Stat.Gold, constructionBuyCost)) {
-            println("${building.name} rejected: purchase not allowed in ${city.name}")
+            //println("${building.name} rejected: purchase not allowed in ${city.name}")
             return false
         }
         if (constructionBuyCost > city.civ.gold) {
-            println("${building.name} rejected: cost $constructionBuyCost exceeds available gold ${city.civ.gold}")
+            //println("${building.name} rejected: cost $constructionBuyCost exceeds available gold ${city.civ.gold}")
             return false
         }
-        println("${building.name} is purchasable in ${city.name} for $constructionBuyCost gold")
+        //println("${building.name} is purchasable in ${city.name} for $constructionBuyCost gold")
         return true
     }
 

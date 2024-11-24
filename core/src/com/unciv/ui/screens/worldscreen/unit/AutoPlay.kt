@@ -19,9 +19,13 @@ class AutoPlay(private var autoPlaySettings: GameSettings.GameSettingsAutoPlay) 
     var autoPlayTurnInProgress: Boolean = false
     var autoPlayJob: Job? = null
 
-    fun startMultiturnAutoPlay() {
+    /** Determines whether to use AAutoExpert instead of regular automation for multi-turn autoplay */
+    var useAAutoExpert: Boolean = false
+
+    fun startMultiturnAutoPlay(useAAutoExpert: Boolean = false) {
         autoPlayTurnInProgress = false
         turnsToAutoPlay = autoPlaySettings.autoPlayMaxTurns
+        this.useAAutoExpert = useAAutoExpert
     }
 
     /**
@@ -39,6 +43,7 @@ class AutoPlay(private var autoPlaySettings: GameSettings.GameSettingsAutoPlay) 
     fun stopAutoPlay() {
         turnsToAutoPlay = 0
         autoPlayTurnInProgress = false
+        useAAutoExpert = false
     }
 
     /**

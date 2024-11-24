@@ -29,46 +29,46 @@ object UseGoldAutomation {
         )
 
 
-        println("=== Purchase Evaluation for ${civ.civName} ===")
-        println("Available Gold: ${civ.gold}")
-        println("Gold per Turn: ${civ.stats.statsForNextTurn.gold}")
+        //println("=== Purchase Evaluation for ${civ.civName} ===")
+        //println("Available Gold: ${civ.gold}")
+        //println("Gold per Turn: ${civ.stats.statsForNextTurn.gold}")
 
         //TODO: For each strategy, print the highest and lowest value options
 
         // Collect and filter purchase options based on available gold
         val allPurchaseOptions = purchasingStrategies.flatMap { strategy ->
             val options = strategy.evaluatePurchases(civ, personality)
-            println("\n${strategy.javaClass.simpleName} evaluated ${options.size} options:")
+            //println("\n${strategy.javaClass.simpleName} evaluated ${options.size} options:")
             options.forEach { option ->
-                println("  [${option.type}] ${option.description}")
-                println("    Value/Cost: ${option.baseValue}/${option.cost} = ${option.baseValue.toFloat()/option.cost}")
+                //println("  [${option.type}] ${option.description}")
+                //println("    Value/Cost: ${option.baseValue}/${option.cost} = ${option.baseValue.toFloat()/option.cost}")
             }
             options
         }.filter { it.cost <= civ.gold }
 
-        println("\nFiltered to ${allPurchaseOptions.size} affordable options")
+        //println("\nFiltered to ${allPurchaseOptions.size} affordable options")
         
         // TODO:Sort by perceived value in descending order for allPurchaseOptions
         // Select and execute the best purchase
         selectBestPurchase(allPurchaseOptions, civ, personality)?.let { selectedOption ->
-            println("\nSelected purchase: ${selectedOption.description}")
-            println("  Cost: ${selectedOption.cost}")
-            println("  Value: ${selectedOption.baseValue}")
+            //println("\nSelected purchase: ${selectedOption.description}")
+            //println("  Cost: ${selectedOption.cost}")
+            //println("  Value: ${selectedOption.baseValue}")
             
             // Execute purchase
             if (selectedOption.cost <= civ.gold) {
                 try {
                     selectedOption.action.invoke()
-                    println("Purchase successful!")
+                    //println("Purchase successful!")
                 } catch (e: Exception) {
-                    println("Purchase failed: ${e.message}")
+                    //println("Purchase failed: ${e.message}")
                 }
             } else {
-                println("Purchase cancelled: Insufficient gold")
+                //println("Purchase cancelled: Insufficient gold")
             }
-        } ?: println("\nNo suitable purchases found")
+        } //?: println("\nNo suitable purchases found")
         
-        println("=== End of Purchase Evaluation ===\n")
+        //println("=== End of Purchase Evaluation ===\n")
     }
 
     /**
@@ -143,8 +143,8 @@ object UseGoldAutomation {
         }
         val willPurchase = option.cost <= (civ.gold - minimumReserve)
         if (!willPurchase) {
-            println("Rejected purchase of ${option.description}: cost ${option.cost}, " +
-                    "gold ${civ.gold}, minimum reserve $minimumReserve")
+            //println("Rejected purchase of ${option.description}: cost ${option.cost}, " +
+            //        "gold ${civ.gold}, minimum reserve $minimumReserve")
         }
         return willPurchase
     }

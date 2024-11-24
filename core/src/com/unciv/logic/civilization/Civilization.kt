@@ -326,6 +326,7 @@ class Civilization : IsPartOfGameInfoSerialization {
         if (!knows(civInfo)) diplomacyFunctions.makeCivilizationsMeet(civInfo)
         return getDiplomacyManager(civInfo.civName)!!
     }
+
     fun getDiplomacyManager(civInfo: Civilization): DiplomacyManager? = getDiplomacyManager(civInfo.civName)
     fun getDiplomacyManager(civName: String): DiplomacyManager? = diplomacy[civName]
 
@@ -339,6 +340,7 @@ class Civilization : IsPartOfGameInfoSerialization {
      *  city-states to contain the barbarians. Therefore, [getKnownCivs] will **not** list the barbarians
      *  for major civs, but **will** do so for city-states after some gameplay.
      */
+
     fun getKnownCivs() = diplomacy.values.asSequence().map { it.otherCiv() }
         .filter { !it.isDefeated() && !it.isSpectator() }
 

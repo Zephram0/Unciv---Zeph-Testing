@@ -82,10 +82,10 @@ object ConstructionStrategy : IPurchasingStrategy {
         val purchaseOptions = mutableListOf<PurchaseOption>()
 
         // Start debug session for this strategy
-        println("\nEvaluating construction purchases for ${civ.civName}:")
+        //println("\nEvaluating construction purchases for ${civ.civName}:")
 
         for (city in civ.cities.filter { !it.isPuppet && !it.isBeingRazed }) {
-            println("Evaluating city: ${city.name}")    
+            //println("Evaluating city: ${city.name}")    
 
             // Retrieve all valid buildings for purchase
             val constructableBuildings = city.cityConstructions.getBuildableBuildings()
@@ -109,23 +109,23 @@ object ConstructionStrategy : IPurchasingStrategy {
 
             // Evaluate all buildings and units
             constructableBuildings.forEach { building ->
-                println("Evaluating building: ${building.name}")
+                //println("Evaluating building: ${building.name}")
                 evaluateConstruction(building, city, civ, personality)?.let { option ->
                     purchaseOptions.add(option)
-                    println("Added building purchase option: ${option.description}")
+                    //println("Added building purchase option: ${option.description}")
                 }
             }
 
             constructableUnits.forEach { unit ->
-                println("Evaluating unit: ${unit.name}")
+                //println("Evaluating unit: ${unit.name}")
                 evaluateConstruction(unit, city, civ, personality)?.let { option ->
                     purchaseOptions.add(option)
-                    println("Added unit purchase option: ${option.description}")
+                    //println("Added unit purchase option: ${option.description}")
                 }
             }
         }
 
-        println("ConstructionStrategy evaluation complete with ${purchaseOptions.size} options")
+        //println("ConstructionStrategy evaluation complete with ${purchaseOptions.size} options")
     
         return purchaseOptions
     }
@@ -146,12 +146,12 @@ object ConstructionStrategy : IPurchasingStrategy {
         personality: Personality
     ): PurchaseOption? {
         // Early type check and cast
-        println("Evaluating construction: ${construction.name}")
+        //println("Evaluating construction: ${construction.name}")
 
         // Early type check and cast
         val nonPerpetualConstruction = construction as? INonPerpetualConstruction
         if (nonPerpetualConstruction == null) {
-            println("Rejected: Not a non-perpetual construction")
+            //println("Rejected: Not a non-perpetual construction")
             return null
         }
 
@@ -167,37 +167,37 @@ object ConstructionStrategy : IPurchasingStrategy {
                 Stat.Gold,
                 goldCost
             )) {
-            println("Rejected: Purchase not allowed in ${city.name}")
+            //println("Rejected: Purchase not allowed in ${city.name}")
             return null
         }
 
         val perceivedValue = when (construction) {
             is Building -> {
                 val value = BuildingEvaluator.calculateBuildingValue(construction, city, personality)
-                println("Building value calculated: $value")
+                //println("Building value calculated: $value")
                 value
             }
             is BaseUnit -> {
                 val value = UnitEvaluator.calculateUnitValue(construction, city, personality)
-                println("Unit value calculated: $value")
+                //println("Unit value calculated: $value")
                 value
             }
             else -> {
-                println("Rejected: Invalid construction type")
+                //println("Rejected: Invalid construction type")
                 return null
             }
         }
 
-        println("${construction.name} value calculated: $perceivedValue")
+        //println("${construction.name} value calculated: $perceivedValue")
 
         if (goldCost > civ.gold) {
-            println("${construction.name} rejected: cost $goldCost exceeds available gold ${civ.gold}")
+            //println("${construction.name} rejected: cost $goldCost exceeds available gold ${civ.gold}")
             return null
         }
 
         if (!PurchaseDecisionEngine.shouldPurchase(perceivedValue, goldCost, civ.gold, civ)) {
-            println("${construction.name} rejected by PurchaseDecisionEngine: " +
-                            "value $perceivedValue, cost $goldCost")
+            //println("${construction.name} rejected by PurchaseDecisionEngine: " +
+            //                "value $perceivedValue, cost $goldCost")
             return null
         }
 

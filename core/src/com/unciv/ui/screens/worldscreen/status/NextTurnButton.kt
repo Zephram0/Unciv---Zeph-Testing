@@ -13,6 +13,7 @@ import com.unciv.ui.images.IconTextButton
 import com.unciv.ui.images.ImageGetter
 import com.unciv.ui.popups.hasOpenPopups
 import com.unciv.ui.screens.worldscreen.WorldScreen
+import com.unciv.logic.aautoexpert.AAutoExpert
 
 class NextTurnButton(
     private val worldScreen: WorldScreen
@@ -35,13 +36,17 @@ class NextTurnButton(
         if (autoPlay.shouldContinueAutoPlaying() && worldScreen.isPlayersTurn
             && !worldScreen.waitingForAutosave && !worldScreen.isNextTurnUpdateRunning()) {
             autoPlay.runAutoPlayJobInNewThread("MultiturnAutoPlay", worldScreen, false) {
-                TurnManager(worldScreen.viewingCiv).automateTurn()
+                if (autoPlay.useAAutoExpert) {
+                    AAutoExpert.startTurn(worldScreen)
+                } else {
+                    TurnManager(worldScreen.viewingCiv).automateTurn()
+                }
                 worldScreen.nextTurn()
                 autoPlay.endTurnMultiturnAutoPlay()
             }
         }
 
-        isEnabled = nextTurnAction.getText (worldScreen) == "AutoPlay"
+        isEnabled = nextTurnAction.getText(worldScreen) == "AutoPlay"
             || (!worldScreen.hasOpenPopups() && worldScreen.isPlayersTurn
                 && !worldScreen.waitingForAutosave && !worldScreen.isNextTurnUpdateRunning())
         if (isEnabled) addTooltip(KeyboardBinding.NextTurn) else addTooltip("")

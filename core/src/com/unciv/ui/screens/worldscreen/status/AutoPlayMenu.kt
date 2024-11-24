@@ -32,15 +32,23 @@ class AutoPlayMenu(
 
     override fun createContentTable(): Table {
         val table = super.createContentTable()!!
-        // Using the same keyboard binding for bypassing this menu and the default option
-        if (!worldScreen.gameInfo.gameParameters.isOnlineMultiplayer)
+        
+        // Regular autoplay buttons first
+        if (!worldScreen.gameInfo.gameParameters.isOnlineMultiplayer) {
             table.add(getButton("Start AutoPlay", KeyboardBinding.AutoPlay, ::multiturnAutoPlay)).row()
+        }
         table.add(getButton("AutoPlay End Turn", KeyboardBinding.AutoPlayMenuEndTurn, ::autoPlayEndTurn)).row()
         table.add(getButton("AutoPlay Military Once", KeyboardBinding.AutoPlayMenuMilitary, ::autoPlayMilitary)).row()
         table.add(getButton("AutoPlay Civilians Once", KeyboardBinding.AutoPlayMenuCivilians, ::autoPlayCivilian)).row()
         table.add(getButton("AutoPlay Economy Once", KeyboardBinding.AutoPlayMenuEconomy, ::autoPlayEconomy)).row()
 
-        // Add to the createContentTable() function after the existing buttons
+        // Auto Expert buttons at the bottom
+        if (!worldScreen.gameInfo.gameParameters.isOnlineMultiplayer) {
+            table.add(getButton("Start Auto Expert", KeyboardBinding.AutoPlay) {
+                worldScreen.autoPlay.startMultiturnAutoPlay(true)
+                nextTurnButton.update()
+            }).row()
+        }
         table.add(getButton("Auto Expert Turn", KeyboardBinding.AutoPlayMenuEndTurn) {
             val endTurnFunction = {
                 nextTurnButton.update()
@@ -62,8 +70,12 @@ class AutoPlayMenu(
     private fun autoPlayEndTurn() {
         val endTurnFunction = {
             nextTurnButton.update()
-            TurnManager(worldScreen.viewingCiv).automateTurn()
-            worldScreen.autoPlay.stopAutoPlay()
+            if (autoPlay.useAAutoExpert) {
+                AAutoExpert.startTurn(worldScreen)
+            } else {
+                TurnManager(worldScreen.viewingCiv).automateTurn()
+                worldScreen.autoPlay.stopAutoPlay()
+            }
             worldScreen.nextTurn()
         }
 

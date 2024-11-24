@@ -94,21 +94,169 @@ Key aspects of this approach include:
 ### 3.2 Technical Foundation
 *(Underlying technologies and methodologies)*
 
+- **In-Game Testing Focus:**
+  - Primary validation through actual gameplay scenarios
+  - Test different map types and starting positions
+  - Verify AI decisions match expert human play
+  - Example testing flow:
+  ```kotlin
+  // Start new game with specific test conditions
+  val testGame = ExpertTestGame.create(mapType = "Pangaea")
+  
+  // Enable verbose logging for decision tracking
+  ExpertStateLogger.configure(enable = true, verbose = true)
+  
+  // Run test scenario
+  testGame.runTurns(3) {
+      // Verify settler behavior
+      assertSettlerFoundedCity(maxTurns = 2)
+      // Verify city location quality
+      assertCityLocationMeetsExpertCriteria()
+  }
+  ```
+
 - **Modular Architecture:**
-  - Structure the AI system into distinct, self-contained modules (e.g., EconomyManager, MilitaryManager).
-  - Utilize interfaces and abstract classes to define clear contracts between modules.
-  - Enable easy integration and replacement of modules without affecting the overall system.
+  - Structure the AI system into distinct, self-contained modules (e.g., EconomyManager, MilitaryManager)
+  - Utilize interfaces and abstract classes to define clear contracts between modules
+  - Enable easy integration and replacement of modules without affecting the overall system
+
+- **Input/Output Validation Layer:**
+  - ValidRawInputValidator provides valid input functions when missing from codebase
+  - ValidRawOutputValidator ensures proper game mechanics for missing output functions
+  - Maintains consistent validation and game rule enforcement
+  - Example flow:
+  ```kotlin
+  // Input validation example
+  if (unit.hasMovement()) {  // Use existing valid input
+      if (ValidRawInputValidator.UnitValidation.canFoundCity(unit, tile)) {  // Use validator for missing input
+          ValidRawOutputValidator.UnitCommands.foundCity(unit)  // Use validator for missing output
+      }
+  }
+  ```
 
 - **Non-Cheating Implementation:**
-  - Adhere strictly to standard game mechanics without introducing hidden advantages.
-  - Ensure AI decisions are based solely on available game information and permitted actions.
-  - Maintain fairness and competitiveness by avoiding resource manipulation or hidden state access.
+  - Adhere strictly to standard game mechanics without introducing hidden advantages
+  - Ensure AI decisions are based solely on available game information and permitted actions
+  - Maintain fairness and competitiveness by avoiding resource manipulation or hidden state access
 
 - **Performance Optimization:**
-  - Implement efficient algorithms to minimize runtime overhead.
-  - Utilize caching and memoization to reduce redundant computations.
-  - Leverage Kotlin coroutines for parallel processing and asynchronous tasks.
+  - Implement efficient algorithms to minimize runtime overhead
+  - Validate performance through actual gameplay
+  - Ensure AI decisions complete within turn time expectations
+  - Example performance monitoring:
+  ```kotlin
+  ExpertStateLogger.logMetrics("Settler decision time: ${decisionTime}ms")
+  ExpertStateLogger.logMetrics("Path calculation time: ${pathTime}ms")
+  ```
 
+### 3.3 Testing Strategy
+*(Testing approach emphasizing actual gameplay)*
+
+- **Primary: Direct Gameplay Testing**
+  - **Play as AI:**
+    - Start new games with AI using our implementation
+    - Monitor and log all decisions in real-time
+    - Compare performance against expert human strategies
+    - Example testing flow:
+    ```kotlin
+    // Enable detailed logging for AI turns
+    ExpertStateLogger.configure(enable = true, verbose = true)
+    
+    // Start test game as AI
+    val testGame = ExpertTestGame.create(
+        mapType = "Pangaea",
+        difficulty = "Emperor",
+        playAsAI = true
+    )
+    
+    // Log all decisions
+    ExpertStateLogger.logDecision("Turn ${testGame.turns}: Settler founded city at ${city.location}")
+    ExpertStateLogger.logMetrics("City score: ${cityScore}")
+    ```
+
+  - **Play Against AI:**
+    - Test as human player against our AI
+    - Document AI responses to player strategies
+    - Identify exploitable patterns
+    - Example testing scenario:
+    ```kotlin
+    // Start test game against AI
+    val testGame = ExpertTestGame.create(
+        mapType = "Continents",
+        difficulty = "Immortal",
+        opponents = listOf(
+            "Our AI Implementation",
+            "Default AI Implementation"
+        )
+    )
+    ```
+
+  - **AI vs AI Testing:**
+    - Run games between our AI and default AI
+    - Compare performance metrics
+    - Identify areas for improvement
+    - Example comparison:
+    ```kotlin
+    // Run AI comparison test
+    val comparisonTest = ExpertAIComparison.create(
+        numberOfGames = 100,
+        mapTypes = listOf("Pangaea", "Continents", "Islands"),
+        opponents = listOf(
+            "Our AI Implementation",
+            "Default AI Implementation",
+            "Custom AI Implementation"
+        )
+    )
+    ```
+
+  - **Save Analysis:**
+    - Save games at critical decision points
+    - Review and analyze AI choices
+    - Document unexpected behaviors
+    - Example save handling:
+    ```kotlin
+    // Save game at important decision
+    ExpertTestGame.saveGameState(
+        filename = "settler_decision_turn2",
+        description = "Analyzing settler city placement",
+        metrics = mapOf(
+            "cityScore" to cityScore,
+            "resourceValue" to resourceValue,
+            "strategicValue" to strategicValue
+        )
+    )
+    ```
+
+- **Secondary: Unit Testing**
+  - Support role for critical calculations
+  - Validate core algorithms
+  - Test edge cases and error handling
+
+- **Tertiary: Integration Testing**
+  - Verify module interactions
+  - Test pipeline data flow
+  - Validate state consistency
+
+### 3.4 Testing Metrics
+*(New section for measuring AI performance)*
+
+- **Early Game Metrics (Turns 1-50):**
+  - City placement quality scores
+  - Resource acquisition rate
+  - Military unit protection effectiveness
+  - Build order efficiency
+
+- **Mid Game Metrics (Turns 51-150):**
+  - City expansion rate
+  - Military strength comparison
+  - Technology advancement rate
+  - Economic growth rate
+
+- **Late Game Metrics (Turns 151+):**
+  - Victory progress rates
+  - Military campaign success rates
+  - Wonder construction rate
+  - Overall score progression
 
 ### 3.3 Project Heirarchy
 *(Used to organize project components and tasks.)*
@@ -159,8 +307,9 @@ Key aspects of this approach include:
 *(Five-layer pipeline ensuring fair AI processing from raw game data to valid actions)*
 
 - **Raw Input Layer:**
-  - Collect only publicly visible game state data from Unciv
-  - Strictly validate inputs against fog-of-war and visibility rules
+  - First checks for valid input functions in Unciv codebase
+  - Routes through ValidRawInputValidator if needed
+  - Strictly validates inputs against fog-of-war and visibility rules
   - Block access to hidden information (e.g., unexplored tiles, enemy plans)
   - Aggregate allowed data points (units in sight, visible resources, etc.)
 
@@ -183,12 +332,34 @@ Key aspects of this approach include:
   - Package commands for game system consumption
 
 - **Raw Output Layer:**
+  - First checks for valid output functions in Unciv codebase
+  - Routes through ValidRawOutputValidator if needed
   - Verify all actions comply with game rules and limitations
   - Ensure no commands exceed normal player capabilities
   - Execute validated actions through proper game channels
   - Monitor results for feedback into future decisions
 
-*Data flows sequentially through layers: Raw Input → Refined Input → AI Core → Refined Output → Raw Output, with each layer adding structure while maintaining fair play constraints.*
+```mermaid
+graph LR
+    subgraph Input Processing
+        UC[Unciv Codebase] --> VRI[ValidRawInputValidator]
+        UC --> RIL[Raw Input Layer]
+        VRI --> RIL
+        RIL --> REFL[Refined Input Layer]
+    end
+
+    subgraph AI Processing
+        REFL --> AI[AI Core]
+        AI --> REFO[Refined Output Layer]
+    end
+
+    subgraph Output Processing
+        REFO --> ROL[Raw Output Layer]
+        ROL --> VRO[ValidRawOutputValidator]
+        ROL --> UC2[Unciv Codebase]
+        VRO --> UC2
+    end
+```
 
 
 ## 4. Development Phases
