@@ -17,4 +17,4 @@ pluginManagement {
 }
 
 rootProject.name = "Unciv---Zeph-Testing"
-include("core", "desktop", "android", "server")
+include("core", "desktop", "android", "server", "tests")

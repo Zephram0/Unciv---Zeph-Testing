@@ -91,102 +91,155 @@ autoexpert/
 > 6. Indicate current progress with checkboxes and percentages
 > 7. Structure must support all features in project_overview.md
 
+The AAutoExpert structure is designed around two key components: a 5-layer pipeline for AI processing and domain-specific expert modules. The pipeline (expertrawinput → expertrefinedinput → expertcore → expertrefinedoutput → expertrawoutput) ensures clean separation between game state access and AI decisions, with validation at each layer. The expertcore is split into strategic analysis and decision synthesis to support both Monte Carlo Tree Search and Q-Learning techniques, while allowing different AI approaches as the system evolves. Domain modules (military, economy, etc.) are kept separate from the pipeline, allowing them to evolve independently through the AI levels (MVP to Superhuman) while maintaining consistent interfaces with the core through the ExpertModuleAPI. This structure supports immediate needs (like settler placement) while enabling gradual expansion through the game's eras, with each module capable of implementing increasingly sophisticated AI techniques without disrupting the overall architecture. The consistent expert/Expert prefix naming and clear separation of concerns makes the system maintainable and testable, while the validation layers ensure all AI actions comply with game rules.
+
 ---
 autoexpert/
-├── [✓] AAutoExpert.kt                     # Main coordinator
-├── [-] expertpipeline/                    # 5-layer AI processing pipeline (15%)
-│   ├── [-] expertinput/                   # Input processing layers
-│   │   ├── [-] ExpertRawInput.kt         # Game state collection
-│   │   ├── [ ] ExpertInputRefiner.kt      # Data transformation
-│   │   └── [ ] expertutils/               # Input utilities
-│   │       └── [ ] ExpertInputValidator.kt # Input validation
-│   ├── [ ] expertcore/                    # Strategic decision core
-│   │   ├── [ ] ExpertStrategicCore.kt     # Decision processing
-│   │   ├── [ ] ExpertStateManager.kt      # State management
-│   │   ├── [ ] ExpertVictoryManager.kt    # Victory tracking
-│   │   └── [ ] ExpertPersonality.kt       # AI personality
-│   └── [-] expertoutput/                  # Output processing
-│       ├── [ ] ExpertOutputRefiner.kt     # Action refinement
-│       ├── [-] ExpertRawOutput.kt         # Action execution
-│       └── [ ] expertutils/               # Output utilities
-│           └── [ ] ExpertOutputValidator.kt# Action validation
-├── [-] expertmodules/                     # Domain modules
-│   ├── [-] expertmilitary/               # Military operations
-│   │   ├── [-] ExpertMilitaryModule.kt    # Unit coordination
-│   │   ├── [-] experthandlers/            # Unit handlers
-│   │   │   ├── [-] ExpertSettlerHandler.kt # Settler logic
-│   │   │   ├── [-] ExpertMilitaryHandler.kt# Basic military control
-│   │   │   ├── [ ] ExpertSiegeHandler.kt   # Siege unit control
-│   │   │   ├── [ ] ExpertNavalHandler.kt   # Naval unit control
-│   │   │   ├── [ ] ExpertAirHandler.kt     # Aircraft control
-│   │   │   └── [ ] ExpertNuclearHandler.kt # Nuclear weapons
-│   │   └── [-] expertutils/               # Military utilities
-│   │       ├── [-] ExpertBattleCalc.kt    # Combat calculations
-│   │       └── [ ] ExpertFormation.kt     # Unit formation logic
+├── [✓] AAutoExpert.kt                           # Main coordinator
+├── [-] expertpipeline/                          # 5-layer AI processing pipeline (15%)
+│   ├── [-] expertrawinput/                      # Layer 1: Raw game state input
+│   │   ├── expertvalidators/                    # Input validation
+│   │   │   ├── ExpertUnitInputValidator.kt           # Unit state validation
+│   │   │   ├── ExpertCityInputValidator.kt           # City state validation
+│   │   │   └── ExpertTerrainInputValidator.kt        # Terrain state validation
+│   │   ├── expertcollectors/                    # Raw data collection
+│   │   │   ├── ExpertUnitStateCollector.kt           # Unit state collection
+│   │   │   ├── ExpertCityStateCollector.kt           # City state collection
+│   │   │   └── ExpertTerrainStateCollector.kt        # Terrain state collection
+│   │   └── expertinterfaces/                    # Raw input interfaces
+│   │       └── ExpertRawInputProvider.kt             # Base interface for raw inputs
 │   │
-│   ├── [ ] expertcity/                    # City operations
-│   │   ├── [ ] ExpertCityModule.kt        # City coordination
-│   │   ├── [ ] experthandlers/            # City handlers
-│   │   │   ├── [ ] ExpertGrowthHandler.kt # Population management
-│   │   │   ├── [ ] ExpertProductionHandler.kt # Build management
-│   │   │   └── [ ] ExpertSpecialistHandler.kt # Specialist control
-│   │   └── [ ] expertutils/               # City utilities
-│   │       └── [ ] ExpertCityCalc.kt      # City calculations
+│   ├── [-] expertrefinedinput/                  # Layer 2: Strategic assessment
+│   │   ├── expertrefiners/                      # Input refinement
+│   │   │   ├── ExpertTileRefiner.kt                  # Tile evaluation
+│   │   │   ├── ExpertUnitRefiner.kt                  # Unit state refinement
+│   │   │   └── ExpertCityRefiner.kt                  # City state refinement
+│   │   ├── expertevaluators/                    # Strategic evaluation
+│   │   │   ├── ExpertTileEvaluator.kt                # Tile scoring
+│   │   │   ├── ExpertResourceEvaluator.kt            # Resource value calculation
+│   │   │   └── ExpertPositionEvaluator.kt            # Position strategic value
+│   │   └── expertinterfaces/                    # Refined input interfaces
+│   │       └── ExpertRefinedInputProvider.kt          # Base interface for refined inputs
 │   │
-│   ├── [ ] experteconomy/                 # Economic operations
-│   │   ├── [ ] ExpertEconomyModule.kt     # Economy coordination
-│   │   ├── [ ] experthandlers/            # Economy handlers
-│   │   │   ├── [ ] ExpertTradeHandler.kt  # Trade routes
-│   │   │   ├── [ ] ExpertMarketHandler.kt # Market/Bank timing
-│   │   │   └── [ ] ExpertCorporateHandler.kt # Corporate management
-│   │   └── [ ] expertutils/               # Economy utilities
-│   │       └── [ ] ExpertResourceCalc.kt  # Resource calculations
+│   ├── expertcore/                              # Layer 3: AI Core
+│   │   ├── expertstrategic/                     # First part of core
+│   │   │   ├── expertanalysis/
+│   │   │   │   ├── ExpertStrategyGenerator.kt
+│   │   │   │   ├── ExpertPatternRecognizer.kt
+│   │   │   │   └── ExpertVictoryPlanner.kt
+│   │   │   └── expertcontext/
+│   │   │       └── ExpertStrategicContext.kt
+│   │   │
+│   │   └── expertsynthesis/                     # Second part of core
+│   │       ├── expertcollector/
+│   │       │   └── ExpertDecisionCollector.kt
+│   │       └── expertresolver/
+│   │           └── ExpertDecisionSynthesizer.kt
 │   │
-│   ├── [ ] expertculture/                 # Cultural operations
-│   │   ├── [ ] ExpertCultureModule.kt     # Culture coordination
-│   │   ├── [ ] experthandlers/            # Culture handlers
-│   │   │   ├── [ ] ExpertPolicyHandler.kt # Policy selection
-│   │   │   ├── [ ] ExpertTourismHandler.kt# Tourism management
-│   │   │   └── [ ] ExpertArchaeologyHandler.kt # Archaeological digs
-│   │   └── [ ] expertutils/               # Culture utilities
-│   │       └── [ ] ExpertInfluenceCalc.kt # Cultural influence calc
+│   ├── [-] expertrefinedoutput/                 # Layer 4: Action Planning
+│   │   ├── expertplanners/                      # Strategic planning
+│   │   │   ├── ExpertUnitActionPlanner.kt            # Unit action planning
+│   │   │   ├── ExpertCityActionPlanner.kt            # City action planning
+│   │   │   └── ExpertDiplomacyPlanner.kt             # Diplomatic action planning
+│   │   ├── expertvalidators/                    # Plan validation
+│   │   │   ├── ExpertUnitPlanValidator.kt            # Unit plan validation
+│   │   │   └── ExpertCityPlanValidator.kt            # City plan validation
+│   │   └── expertinterfaces/                    # Plan interfaces
+│   │       └── ExpertActionPlan.kt                    # Action plan interface
 │   │
-│   ├── [ ] expertscience/                 # Research operations
-│   │   ├── [ ] ExpertScienceModule.kt     # Science coordination
-│   │   ├── [ ] experthandlers/            # Science handlers
-│   │   │   ├── [ ] ExpertTechHandler.kt   # Tech tree navigation
-│   │   │   ├── [ ] ExpertSpaceHandler.kt  # Space race projects
-│   │   │   └── [ ] ExpertResearchHandler.kt # Research agreements
-│   │   └── [ ] expertutils/               # Science utilities
-│   │       └── [ ] ExpertTechCalc.kt      # Tech value calculations
+│   └── [-] expertrawoutput/                     # Layer 5: Action Execution
+│       ├── expertexecutors/                     # Command execution
+│       │   ├── ExpertUnitCommandExecutor.kt           # Unit command execution
+│       │   ├── ExpertCityCommandExecutor.kt           # City command execution
+│       │   └── ExpertDiplomacyExecutor.kt             # Diplomacy execution
+│       ├── expertvalidators/                    # Output validation
+│       │   ├── ExpertUnitOutputValidator.kt           # Unit action validation
+│       │   ├── ExpertCityOutputValidator.kt           # City action validation
+│       │   └── ExpertDiplomacyValidator.kt            # Diplomacy validation
+│       └── expertinterfaces/                    # Execution interfaces
+│           └── ExpertCommandExecutor.kt                # Base executor interface
+│
+├── expertmodules/             # Domain modules
+│   ├── expertcommon/
+│   │   ├── ExpertModuleAPI.kt
+│   │   └── ExpertDecisionTypes.kt
 │   │
-│   ├── [ ] expertreligion/               # Religious operations
-│   │   ├── [ ] ExpertReligionModule.kt    # Religion coordination
-│   │   ├── [ ] experthandlers/            # Religion handlers
-│   │   │   ├── [ ] ExpertBeliefHandler.kt # Belief selection
-│   │   │   ├── [ ] ExpertSpreadHandler.kt # Religious unit control
-│   │   │   └── [ ] ExpertPressureHandler.kt # Religious pressure
-│   │   └── [ ] expertutils/               # Religion utilities
-│   │       └── [ ] ExpertFaithCalc.kt     # Faith calculations
+│   ├── expertmilitary/
+│   │   ├── ExpertMilitaryModule.kt
+│   │   ├── experthandlers/
+│   │   │   ├── ExpertSettlerHandler.kt
+│   │   │   ├── ExpertMilitaryHandler.kt
+│   │   │   ├── ExpertSiegeHandler.kt
+│   │   │   ├── ExpertNavalHandler.kt
+│   │   │   ├── ExpertAirHandler.kt
+│   │   │   └── ExpertNuclearHandler.kt
+│   │   └── expertutils/
+│   │       ├── ExpertBattleCalc.kt
+│   │       └── ExpertFormation.kt
 │   │
-│   └── [ ] expertdiplomacy/              # Diplomatic operations
-│       ├── [ ] ExpertDiplomacyModule.kt   # Diplomacy coordination
-│       ├── [ ] experthandlers/            # Diplomacy handlers
-│       │   ├── [ ] ExpertDealHandler.kt   # Trade deals
-│       │   ├── [ ] ExpertWarHandler.kt    # War declarations
-│       │   ├── [ ] ExpertCityStateHandler.kt # City-state relations
-│       │   └── [ ] ExpertVictoryHandler.kt # Diplomatic victory
-│       └── [ ] expertutils/               # Diplomacy utilities
-│           └── [ ] ExpertThreatCalc.kt    # Threat calculations
-├── [ ] experttesting/                     # Test implementations
-│   ├── [ ] ExpertTestGame.kt              # Test game setup
-│   ├── [ ] ExpertUnitTests.kt             # Unit testing
-│   └── [ ] expertintegration/             # Integration tests
-└── [-] expertutils/                      # Global utilities (20%)
-    ├── [-] ExpertMovementHelper.kt       # Safe movement utilities
-    ├── [ ] ExpertLogger.kt                # Enhanced logging
-    ├── [ ] ExpertMetrics.kt               # Performance monitoring
-    └── [ ] ExpertDebugger.kt              # Debug utilities
+│   ├── [ ] expertcity/                          # City operations
+│   │   ├── [ ] ExpertCityModule.kt                   # City coordination
+│   │   ├── [ ] experthandlers/                  # City handlers
+│   │   │   ├── [ ] ExpertGrowthHandler.kt            # Population management
+│   │   │   ├── [ ] ExpertProductionHandler.kt        # Build management
+│   │   │   └── [ ] ExpertSpecialistHandler.kt        # Specialist control
+│   │   └── [ ] expertutils/                     # City utilities
+│   │       └── [ ] ExpertCityCalc.kt                 # City calculations
+│   │
+│   ├── [ ] experteconomy/                       # Economic operations
+│   │   ├── [ ] ExpertEconomyModule.kt                # Economy coordination
+│   │   ├── [ ] experthandlers/                  # Economy handlers
+│   │   │   ├── [ ] ExpertTradeHandler.kt             # Trade routes
+│   │   │   ├── [ ] ExpertMarketHandler.kt            # Market/Bank timing
+│   │   │   └── [ ] ExpertCorporateHandler.kt         # Corporate management
+│   │   └── [ ] expertutils/                     # Economy utilities
+│   │       └── [ ] ExpertResourceCalc.kt             # Resource calculations
+│   │
+│   ├── [ ] expertculture/                       # Cultural operations
+│   │   ├── [ ] ExpertCultureModule.kt                # Culture coordination
+│   │   ├── [ ] experthandlers/                  # Culture handlers
+│   │   │   ├── [ ] ExpertPolicyHandler.kt            # Policy selection
+│   │   │   ├── [ ] ExpertTourismHandler.kt           # Tourism management
+│   │   │   └── [ ] ExpertArchaeologyHandler.kt       # Archaeological digs
+│   │   └── [ ] expertutils/                     # Culture utilities
+│   │       └── [ ] ExpertInfluenceCalc.kt            # Cultural influence calc
+│   │
+│   ├── [ ] expertscience/                       # Research operations
+│   │   ├── [ ] ExpertScienceModule.kt                # Science coordination
+│   │   ├── [ ] experthandlers/                  # Science handlers
+│   │   │   ├── [ ] ExpertTechHandler.kt              # Tech tree navigation
+│   │   │   ├── [ ] ExpertSpaceHandler.kt             # Space race projects
+│   │   │   └── [ ] ExpertResearchHandler.kt          # Research agreements
+│   │   └── [ ] expertutils/                     # Science utilities
+│   │       └── [ ] ExpertTechCalc.kt                 # Tech value calculations
+│   │
+│   ├── [ ] expertreligion/                      # Religious operations
+│   │   ├── [ ] ExpertReligionModule.kt               # Religion coordination
+│   │   ├── [ ] experthandlers/                  # Religion handlers
+│   │   │   ├── [ ] ExpertBeliefHandler.kt            # Belief selection
+│   │   │   ├── [ ] ExpertSpreadHandler.kt            # Religious unit control
+│   │   │   └── [ ] ExpertPressureHandler.kt          # Religious pressure
+│   │   └── [ ] expertutils/                     # Religion utilities
+│   │       └── [ ] ExpertFaithCalc.kt                # Faith calculations
+│   │
+│   └── [ ] expertdiplomacy/                     # Diplomatic operations
+│       ├── [ ] ExpertDiplomacyModule.kt              # Diplomacy coordination
+│       ├── [ ] experthandlers/                  # Diplomacy handlers
+│       │   ├── [ ] ExpertDealHandler.kt              # Trade deals
+│       │   ├── [ ] ExpertWarHandler.kt               # War declarations
+│       │   ├── [ ] ExpertCityStateHandler.kt         # City-state relations
+│       │   └── [ ] ExpertVictoryHandler.kt           # Diplomatic victory
+│       └── [ ] expertutils/                     # Diplomacy utilities
+│           └── [ ] ExpertThreatCalc.kt               # Threat calculations
+├── [ ] experttesting/                           # Test implementations
+│   ├── [ ] ExpertTestGame.kt                    # Test game setup
+│   ├── [ ] ExpertUnitTests.kt                   # Unit testing
+│   └── [ ] expertintegration/                   # Integration tests
+└── [-] expertutils/                             # Global utilities (20%)
+    ├── [-] ExpertMovementHelper.kt              # Safe movement utilities
+    ├── [ ] ExpertLogger.kt                      # Enhanced logging
+    ├── [ ] ExpertMetrics.kt                     # Performance monitoring
+    └── [ ] ExpertDebugger.kt                    # Debug utilities
 ---
 
 ### 1.5 Pipeline Architecture

@@ -197,6 +197,6 @@ This collaborative effort will build our validated I/O catalog as we develop the
 
 ## See Also
 - [Validation Guide](validation_guide.md)
-- [Core Concepts](core_concepts.md)
+- [Core Input/Output Concepts](core_in_out_concepts.md)
 - [Raw Inputs](../verified_io/raw_inputs.md)
 - [Raw Outputs](../verified_io/raw_outputs.md) 

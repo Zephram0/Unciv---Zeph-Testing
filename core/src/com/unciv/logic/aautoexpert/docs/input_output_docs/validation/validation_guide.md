@@ -10,7 +10,7 @@ Before identifying VRI/VRO, understand the corresponding Civilization 5 mechanic
 1. **Unit Actions**
    - Units can only move within movement points
    - Combat requires valid line of sight
-   - City founding needs minimum city spacing (4 tiles)
+   - City founding needs minimum city spacing (3 tile spacing)
    - Units can't move after combat (with exceptions like Great Generals)
 
 2. **Resource and Vision Rules**
@@ -20,7 +20,7 @@ Before identifying VRI/VRO, understand the corresponding Civilization 5 mechanic
    - Strategic resources require improvements (Mine for Iron)
 
 3. **City Management**
-   - Cities need minimum spacing (4 tiles)
+   - Cities need minimum spacing (3 tile spacing)
    - Population affects workable tiles (max 3 rings)
    - Buildings have prerequisites (Library needs Writing)
    - Trade routes need valid paths (roads/harbors)
@@ -184,7 +184,7 @@ fun testCityFounding() {
 
 ## See Also
 
-- [Core Concepts](core_concepts.md)
+- [Core Input/Output Concepts](core_in_out_concepts.md)
 - [Raw Inputs](../verified_io/raw_inputs.md)
 - [Raw Outputs](../verified_io/raw_outputs.md)
 - [Input Validators](../validator_reference/input_validators.md)

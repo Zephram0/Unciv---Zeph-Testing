@@ -8,7 +8,7 @@ This documentation explains how AAuto Expert handles input/output validation and
 ## Documentation Structure
 
 ### Core Documentation (Complete)
-1. [Core Concepts](validation/core_concepts.md)
+1. [Core Input/Output Concepts](validation/core_in_out_concepts.md)
    - Fundamental validation principles
    - 5-layer validation system
    - Component interactions
@@ -71,7 +71,7 @@ This documentation explains how AAuto Expert handles input/output validation and
    - Understand existing validation patterns
 
 2. **Understand Requirements**
-   - Review [Core Concepts](validation/core_concepts.md)
+   - Review [Core Input/Output Concepts](validation/core_in_out_concepts.md)
    - Study Civilization 5 mechanics
    - Identify validation needs
 

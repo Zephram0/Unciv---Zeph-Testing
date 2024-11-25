@@ -26,6 +26,12 @@ class ExpertMilitaryModule(private val gameInfo: GameInfo) : AIModule {
      */
     override fun processDecisions(civInfo: Civilization) {
         ExpertStateLogger.logDecision("ExpertMilitaryModule: Starting military decisions for ${civInfo.civName}")
+        ExpertStateLogger.logDecision("Current turn: ${civInfo.gameInfo.turns}")
+
+        // Log all units at start
+        civInfo.units.getCivUnits().forEach { unit ->
+            ExpertStateLogger.logDecision("Available unit: ${unit.name} (ID: ${unit.id}) at ${unit.getTile().position}, Movement: ${unit.currentMovement}/${unit.getMaxMovement()}")
+        }
 
         // Create settler handler with the civilization's ruleset
         val settlerHandler = ExpertSettlerHandler(gameInfo.ruleset)
